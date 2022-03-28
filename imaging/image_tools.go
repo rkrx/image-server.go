@@ -3,8 +3,12 @@ package imaging
 import (
 	"bytes"
 	"github.com/chai2010/webp"
+	im "github.com/disintegration/imaging"
+	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
+	_ "image/jpeg"
+	_ "image/png"
 	"log"
 	"os"
 )
@@ -15,6 +19,16 @@ func Width(img image.Image) int {
 
 func Height(img image.Image) int {
 	return img.Bounds().Dy()
+}
+
+func ResizeProportional(img image.Image, width, height int) image.Image {
+	imgW, imgH := Width(img), Height(img)
+	w, h := CalcProportionalResize(imgW, imgH, width, height)
+	return resize.Resize(uint(w), uint(h), img, resize.Lanczos3)
+}
+
+func Sharpen(img image.Image, sigma float64) *image.NRGBA {
+	return im.Sharpen(img, sigma)
 }
 
 func LoadImageFromFile(filename string) (image.Image, error) {

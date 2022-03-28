@@ -3,12 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/chai2010/webp"
 	"github.com/nfnt/resize"
-	"golang.org/x/image/draw"
 	"image"
 	"image-server/imaging"
 	"image-server/tools"
+	"image/color"
 	_ "image/jpeg"
 	_ "image/png"
 	"io/ioutil"
@@ -70,14 +69,12 @@ func onRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func doWork(img image.Image) {
-	imaging.Autocrop(img, 85, 100, 6)
-	rect := imaging.GetInnerObjectBounds(img, 65536-6000, 65535)
-
-	//fmt.Printf("X0: %d; Y0: %d; X1: %d; Y1: %d", rect.Bounds().Min.X, rect.Bounds().Min.Y, rect.Bounds().Max.X, rect.Bounds().Max.Y)
-
-	newImg := image.NewRGBA(image.Rect(0, 0, rect.Dx(), rect.Dy()))
-
-	draw.Copy(newImg, image.Point{}, img, rect, draw.Src, nil)
+	w, h := 500, 500
+	newImg := img
+	newImg = imaging.Autocrop(img, 85, 100, 3)
+	newImg = imaging.ResizeProportional(newImg, w, h)
+	newImg = imaging.Sharpen(newImg, 1)
+	newImg = imaging.SetCanvas(newImg, w, h, imaging.Center, imaging.Center, color.White)
 }
 
 func worker(caption string, c chan int) {
@@ -98,16 +95,21 @@ func worker(caption string, c chan int) {
 }
 
 func main() {
-	img, err := imaging.LoadImageFromFile("camera.jpeg")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	newImg := imaging.Autocrop(img, 85, 100, 3)
-
-	webp.Save("test.webp", newImg, &webp.Options{Quality: 100})
-
-	return
+	//img, err := imaging.LoadImageFromFile("camera.jpeg")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//w, h := 500, 500
+	//
+	//newImg := imaging.Autocrop(img, 85, 100, 3)
+	//newImg = imaging.ResizeProportional(newImg, w, h)
+	//newImg = imaging.Sharpen(newImg, 1)
+	//newImg = imaging.SetCanvas(newImg, w, h, imaging.Center, imaging.Center, color.White)
+	//
+	//webp.Save("test.webp", newImg, &webp.Options{Quality: 100})
+	//
+	//return
 
 	c := make(chan int)
 
@@ -124,7 +126,7 @@ func main() {
 	go worker("I", c)
 	go worker("J", c)
 
-	for i := 0; i < 5000; i++ {
+	for i := 0; i < 1000; i++ {
 		c <- i
 	}
 
