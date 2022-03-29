@@ -41,6 +41,19 @@ func LoadImageFromFile(filename string) (image.Image, error) {
 	return img, err
 }
 
+func SaveToJpegFile(img image.Image, filepath string, quality int) error {
+	var buf bytes.Buffer
+	err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: quality})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath, buf.Bytes(), 0666)
+}
+
+func SaveToWebpFile(img image.Image, filepath string, options *webp.Options) error {
+	return webp.Save(filepath, img, options)
+}
+
 func Img2WebpBuffer(buf *bytes.Buffer, img image.Image, quality float32) error {
 	if err := webp.Encode(buf, img, &webp.Options{Quality: quality}); err != nil {
 		log.Println(err)
