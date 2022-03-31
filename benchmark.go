@@ -14,7 +14,7 @@ import (
 func doWork(img image.Image) {
 	w, h := 500, 500
 	newImg := img
-	newImg = imaging.Autocrop(img, 85, 100, 3)
+	newImg = imaging.Autocrop(img, 15, 3)
 	newImg = imaging.ResizeProportional(newImg, w, h)
 	newImg = imaging.Sharpen(newImg, 1)
 	newImg = imaging.SetCanvas(newImg, w, h, imaging.Center, imaging.Center, color.White)

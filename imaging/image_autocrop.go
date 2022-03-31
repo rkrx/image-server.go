@@ -3,18 +3,20 @@ package imaging
 import (
 	"golang.org/x/image/draw"
 	"image"
+	"image/color"
 	"math"
 )
 
-func Autocrop(img image.Image, tolerancePercentMin, tolerancePercentMax, borderPercent float64) image.Image {
-	measures := getAutocropMeasures(img, tolerancePercentMin, tolerancePercentMax, borderPercent)
+func Autocrop(img image.Image, tolerancePercent, borderPercent float64) image.Image {
+	measures := getAutocropMeasures(img, tolerancePercent, borderPercent)
 	newImg := image.NewRGBA(measures.target.Dim())
+	draw.Draw(newImg, measures.target.Dim(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
 	draw.Copy(newImg, measures.target.Point(), img, measures.source.Rect(), draw.Src, nil)
 	return newImg
 }
 
-func getAutocropMeasures(img image.Image, tolerancePercentMin, tolerancePercentMax, borderPercent float64) AutocropMeasures {
-	absToleranceMin, absToleranceMax := getAbsToleranceValues(tolerancePercentMin, tolerancePercentMax)
+func getAutocropMeasures(img image.Image, tolerancePercent, borderPercent float64) AutocropMeasures {
+	absToleranceMin, absToleranceMax := getAbsToleranceValues(tolerancePercent)
 
 	rect := GetInnerObjectBounds(img, absToleranceMin, absToleranceMax)
 	borderAbs := int(math.Round(math.Max(float64(rect.Dx())/100*borderPercent, float64(rect.Dy())/100*borderPercent)))
@@ -48,19 +50,14 @@ func getAutocropMeasures(img image.Image, tolerancePercentMin, tolerancePercentM
 	}
 }
 
-func getAbsToleranceValues(tolerancePercentMin, tolerancePercentMax float64) (uint32, uint32) {
-	var absToleranceMin uint32 = 0
-	var absToleranceMax uint32 = 0xFFFF
+func getAbsToleranceValues(tolerancePercent float64) (uint32, uint32) {
+	var absToleranceLower uint32 = 0
+	var absToleranceUpper uint32 = 0xFFFF
 
-	if tolerancePercentMin > 0.0001 {
-		absToleranceMin = uint32(math.Min(math.Max(math.Round(0xFFFF/100*tolerancePercentMin), 0), 0xFFFF))
-	}
+	absToleranceLower = uint32(math.Round(float64(0xFFFF) / 100.0 * tolerancePercent))
+	absToleranceUpper = 0xFFFF - absToleranceLower
 
-	if tolerancePercentMax < 99.999 {
-		absToleranceMax = uint32(math.Min(math.Max(math.Round(0xFFFF/100*tolerancePercentMax), 0), 0xFFFF))
-	}
-
-	return absToleranceMin, absToleranceMax
+	return absToleranceLower, absToleranceUpper
 }
 
 func getCoords(p, b int) (newP, offset int) {

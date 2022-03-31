@@ -28,13 +28,10 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	cachePath := fmt.Sprintf("var/cache/images/%d-%d/%s", width, height, filename)
 
-	if !tools.FileExists(cachePath) {
+	if !tools.FileExists(cachePath) || true {
 		log.Printf("💢 File %s is not cached", cachePath)
 		statusCode, err := backend.getFinalImageBytes(cachePath, func(img image.Image) image.Image {
-			img = imaging.Autocrop(img, 85, 100, 3)
-			fmt.Printf("Original image measures: width = %d, height = %d\n", img.Bounds().Dx(), img.Bounds().Dy())
-			w, h := imaging.CalcProportionalResize(img.Bounds().Dx(), img.Bounds().Dy(), width, height)
-			fmt.Printf("New image measures: width = %d, height = %d\n", w, h)
+			img = imaging.Autocrop(img, 15, 3)
 			img = imaging.ResizeProportional(img, width, height)
 			img = imaging.Sharpen(img, .6)
 			img = imaging.SetCanvas(img, width, height, imaging.Center, imaging.Center, color.White)
@@ -120,7 +117,8 @@ func parseRequestPath(requestPath string) (filename string, width int, height in
 }
 
 func (backend *Backend) FetchImage(path string) ([]byte, int, error) {
-	resp, err := http.Get(fmt.Sprintf("%s%s", backend.BaseUri, path))
+	fetchUrl := fmt.Sprintf("%s%s", backend.BaseUri, path)
+	resp, err := http.Get(fetchUrl)
 	if err != nil {
 		return nil, 500, err
 	}

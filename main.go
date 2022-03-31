@@ -4,6 +4,9 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/chai2010/webp"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	_ "golang.org/x/net/http2/h2c"
 	"image-server/imaging"
 	"image-server/server"
 	"image-server/tools"
@@ -45,7 +48,7 @@ func onRequest(w http.ResponseWriter, r *http.Request) {
 	width, height := 500, 500
 
 	newImg := img
-	newImg = imaging.Autocrop(img, 85, 100, 3)
+	newImg = imaging.Autocrop(img, 15, 3)
 	newImg = imaging.ResizeProportional(newImg, width, height)
 	newImg = imaging.Sharpen(newImg, .6)
 	newImg = imaging.SetCanvas(newImg, width, height, imaging.Center, imaging.Center, color.White)
@@ -82,6 +85,7 @@ func ServeFromFile(filepath string, writer http.ResponseWriter) error {
 type Config struct {
 	OriginalBackend string
 	LoggingEnabled  bool
+	ListenAddr      string
 }
 
 func main() {
@@ -105,6 +109,14 @@ func main() {
 	})
 	r.PathPrefix("/").Handler(http.StripPrefix("/", backend))
 	http.Handle("/", r)
-	err = http.ListenAndServe("127.0.0.1:8080", nil)
+
+	h2s := &http2.Server{}
+
+	srv := &http.Server{
+		Addr:    conf.ListenAddr,
+		Handler: h2c.NewHandler(r, h2s),
+	}
+
+	err = srv.ListenAndServe()
 	log.Fatal(err)
 }
