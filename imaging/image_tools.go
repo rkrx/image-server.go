@@ -62,6 +62,12 @@ func Img2WebpBuffer(buf *bytes.Buffer, img image.Image, quality float32) error {
 	return nil
 }
 
+func Img2JpegBytes(img image.Image, quality int) ([]byte, error) {
+	buf := bytes.Buffer{}
+	err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: quality})
+	return buf.Bytes(), err
+}
+
 func Img2JpegBuffer(buf *bytes.Buffer, img image.Image, quality int) error {
 	return jpeg.Encode(buf, img, &jpeg.Options{Quality: quality})
 }

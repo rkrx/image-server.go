@@ -1,8 +1,11 @@
 package main
 
 import (
+	"github.com/BurntSushi/toml"
 	"github.com/chai2010/webp"
+	"github.com/gorilla/mux"
 	"image-server/imaging"
+	"image-server/server"
 	"image-server/tools"
 	"image/color"
 	_ "image/jpeg"
@@ -14,9 +17,15 @@ import (
 )
 
 func onRequest(w http.ResponseWriter, r *http.Request) {
-	log.Printf("RequestURI: %s", r.RequestURI)
-	log.Printf("Path: %s", r.URL.Path)
-	log.Printf("Method: %s", r.Method)
+	if r.URL.Path == "/favicon.ico" {
+		w.WriteHeader(404)
+		return
+	}
+
+	log.Printf("RequestURI: %s; Path: %s; Method: %s", r.RequestURI, r.URL.Path, r.Method)
+
+	// parts, err :=
+	server.ParseRequestPath(r.URL.Path)
 
 	w.Header().Add("Cache-Control", "no-cache")
 
@@ -26,9 +35,11 @@ func onRequest(w http.ResponseWriter, r *http.Request) {
 	useWebP := tools.Contains(acceptedFormats, "image/webp")
 	useWebP = false
 
-	img, err := imaging.LoadImageFromFile("camera.jpeg")
+	img, err := imaging.LoadImageFromFile("var/images/camera.jpeg")
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(500)
+		log.Println(err)
+		return
 	}
 
 	width, height := 500, 500
@@ -41,20 +52,20 @@ func onRequest(w http.ResponseWriter, r *http.Request) {
 
 	var filename string
 	if useWebP {
-		filename = "cache/resized.webp"
+		filename = "var/cache/resized.webp"
 		if err := imaging.SaveToWebpFile(newImg, filename, &webp.Options{Quality: 90}); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			return
 		}
 	} else {
-		filename = "cache/resized.jpg"
+		filename = "var/cache/resized.jpg"
 		if err := imaging.SaveToJpegFile(newImg, filename, 90); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			return
 		}
 	}
 	if err := ServeFromFile(filename, w); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return
 	}
 }
@@ -68,8 +79,32 @@ func ServeFromFile(filepath string, writer http.ResponseWriter) error {
 	return err
 }
 
+type Config struct {
+	OriginalBackend string
+	LoggingEnabled  bool
+}
+
 func main() {
-	http.HandleFunc("/", onRequest)
-	err := http.ListenAndServe("127.0.0.1:8080", nil)
+	log.Print("Start server...")
+
+	var conf Config
+	_, err := toml.DecodeFile("config.toml", &conf)
+	if err != nil {
+		log.Fatalf("Can't load config.toml: %s", err)
+	}
+
+	log.SetOutput(os.Stdout)
+
+	log.Printf("Original backend: %s", conf.OriginalBackend)
+	log.Printf("Logging enabled: %d", conf.LoggingEnabled)
+
+	backend := server.Backend{BaseUri: conf.OriginalBackend, Logging: conf.LoggingEnabled}
+	r := mux.NewRouter()
+	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+	r.PathPrefix("/").Handler(http.StripPrefix("/", backend))
+	http.Handle("/", r)
+	err = http.ListenAndServe("127.0.0.1:8080", nil)
 	log.Fatal(err)
 }

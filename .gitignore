@@ -1,5 +1,9 @@
-*.jpeg
-*.jpg
-*.png
-*.webp
-*.gif
+/*
+!imaging
+!server
+!tools
+!var
+!.gitignore
+!benchmark.go
+!go.mod
+!main.go

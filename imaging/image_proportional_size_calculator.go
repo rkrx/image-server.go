@@ -10,7 +10,7 @@ func CalcProportionalResize(imgWidth, imgHeight, destWidth, destHeight int) (int
 		return resWidth, resHeight
 	}
 	resWidth := imgWidth * destHeight / imgHeight
-	resHeight := imgHeight
+	resHeight := destHeight
 	if resWidth > destWidth {
 		return destWidth, imgHeight * destWidth / imgWidth
 	}
