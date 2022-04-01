@@ -6,9 +6,9 @@ import (
 )
 
 func TestGetAutocropMeasures(t *testing.T) {
-	img, _ := LoadImageFromFile("assets/test32.jpeg")
+	img, _ := LoadImageFromFile("test_assets/test32.jpeg")
 
-	measures := getAutocropMeasures(img, 85, 100, 0)
+	measures := getAutocropMeasures(img, 15, 0)
 	assert.Equal(t, 6, measures.source.x)
 	assert.Equal(t, 9, measures.source.y)
 	assert.Equal(t, 23, measures.source.w)
@@ -18,7 +18,7 @@ func TestGetAutocropMeasures(t *testing.T) {
 	assert.Equal(t, 23, measures.target.w)
 	assert.Equal(t, 17, measures.target.h)
 
-	measures = getAutocropMeasures(img, 85, 100, 3)
+	measures = getAutocropMeasures(img, 15, 3)
 	assert.Equal(t, 5, measures.source.x)
 	assert.Equal(t, 8, measures.source.y)
 	assert.Equal(t, 25, measures.source.w)
@@ -28,7 +28,7 @@ func TestGetAutocropMeasures(t *testing.T) {
 	assert.Equal(t, 25, measures.target.w)
 	assert.Equal(t, 19, measures.target.h)
 
-	measures = getAutocropMeasures(img, 85, 100, 100)
+	measures = getAutocropMeasures(img, 15, 100)
 	assert.Equal(t, 0, measures.source.x)
 	assert.Equal(t, 0, measures.source.y)
 	assert.Equal(t, 26, measures.source.w)
@@ -38,9 +38,9 @@ func TestGetAutocropMeasures(t *testing.T) {
 	assert.Equal(t, 69, measures.target.w)
 	assert.Equal(t, 63, measures.target.h)
 
-	img, _ = LoadImageFromFile("assets/test_full32.jpeg")
+	img, _ = LoadImageFromFile("test_assets/test_full32.jpeg")
 
-	measures = getAutocropMeasures(img, 85, 100, 0)
+	measures = getAutocropMeasures(img, 15, 0)
 	assert.Equal(t, 0, measures.source.x)
 	assert.Equal(t, 0, measures.source.y)
 	assert.Equal(t, 32, measures.source.w)
@@ -50,7 +50,7 @@ func TestGetAutocropMeasures(t *testing.T) {
 	assert.Equal(t, 32, measures.target.w)
 	assert.Equal(t, 32, measures.target.h)
 
-	measures = getAutocropMeasures(img, 85, 100, 3)
+	measures = getAutocropMeasures(img, 15, 3)
 	assert.Equal(t, 0, measures.source.x)
 	assert.Equal(t, 0, measures.source.y)
 	assert.Equal(t, 32, measures.source.w)
@@ -60,7 +60,7 @@ func TestGetAutocropMeasures(t *testing.T) {
 	assert.Equal(t, 34, measures.target.w)
 	assert.Equal(t, 34, measures.target.h)
 
-	measures = getAutocropMeasures(img, 85, 100, 100)
+	measures = getAutocropMeasures(img, 15, 100)
 	assert.Equal(t, 0, measures.source.x)
 	assert.Equal(t, 0, measures.source.y)
 	assert.Equal(t, 32, measures.source.w)

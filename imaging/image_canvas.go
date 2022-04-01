@@ -1,7 +1,7 @@
 package imaging
 
 import (
-	draw2 "golang.org/x/image/draw"
+	copy "golang.org/x/image/draw"
 	"image"
 	"image/color"
 	"image/draw"
@@ -23,7 +23,7 @@ func SetCanvas(img image.Image, width, height int, horizontalPos, verticalPos Po
 	db := newImg.Bounds()
 	x := alignValue(db.Dx(), sb.Dx(), horizontalPos)
 	y := alignValue(db.Dy(), sb.Dy(), verticalPos)
-	draw2.Copy(newImg, image.Point{X: x, Y: y}, img, sb, draw.Src, nil)
+	copy.Copy(newImg, image.Point{X: x, Y: y}, img, sb, draw.Over, nil)
 	return newImg
 }
 

@@ -11,14 +11,14 @@ func Autocrop(img image.Image, tolerancePercent, borderPercent float64) image.Im
 	measures := getAutocropMeasures(img, tolerancePercent, borderPercent)
 	newImg := image.NewRGBA(measures.target.Dim())
 	draw.Draw(newImg, measures.target.Dim(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
-	draw.Copy(newImg, measures.target.Point(), img, measures.source.Rect(), draw.Src, nil)
+	draw.Copy(newImg, measures.target.Point(), img, measures.source.Rect(), draw.Over, nil)
 	return newImg
 }
 
 func getAutocropMeasures(img image.Image, tolerancePercent, borderPercent float64) AutocropMeasures {
-	absToleranceMin, absToleranceMax := getAbsToleranceValues(tolerancePercent)
+	absTolerance := 0xFFFF - uint32(math.Round(float64(0xFFFF)/100.0*tolerancePercent))
 
-	rect := GetInnerObjectBounds(img, absToleranceMin, absToleranceMax)
+	rect := GetInnerObjectBounds(img, absTolerance)
 	borderAbs := int(math.Round(math.Max(float64(rect.Dx())/100*borderPercent, float64(rect.Dy())/100*borderPercent)))
 
 	srcX, offsetX := getCoords(rect.Min.X, borderAbs)
@@ -48,16 +48,6 @@ func getAutocropMeasures(img image.Image, tolerancePercent, borderPercent float6
 			h: rect.Dy() + borderAbs*2,
 		},
 	}
-}
-
-func getAbsToleranceValues(tolerancePercent float64) (uint32, uint32) {
-	var absToleranceLower uint32 = 0
-	var absToleranceUpper uint32 = 0xFFFF
-
-	absToleranceLower = uint32(math.Round(float64(0xFFFF) / 100.0 * tolerancePercent))
-	absToleranceUpper = 0xFFFF - absToleranceLower
-
-	return absToleranceLower, absToleranceUpper
 }
 
 func getCoords(p, b int) (newP, offset int) {

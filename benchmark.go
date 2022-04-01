@@ -37,7 +37,7 @@ func worker(caption string, c chan int) {
 	}
 }
 
-func main() {
+func main2() {
 	c := make(chan int)
 
 	start := time.Now()

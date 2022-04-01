@@ -1,0 +1,17 @@
+enableLogging = true
+
+[server]
+listenAddr = "0.0.0.0:8080"
+originalBackend = "https://127.0.0.1/original"
+
+[[profile]]
+name = "500px"
+width = 500
+height = 500
+
+[[profile]]
+name = "250px"
+width = 250
+height = 250
+sharpen = 0.6
+autocrop = {tolerance = 15, border = 3}

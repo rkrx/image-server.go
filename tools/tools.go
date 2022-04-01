@@ -7,15 +7,6 @@ import (
 	"strconv"
 )
 
-func Contains[T string](haystack []T, needle T) bool {
-	for _, a := range haystack {
-		if a == needle {
-			return true
-		}
-	}
-	return false
-}
-
 func ToIntOr(str string, defaultValue int) int {
 	if value, err := strconv.Atoi(str); err == nil {
 		return value
