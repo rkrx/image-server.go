@@ -28,7 +28,7 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	cachePath := fmt.Sprintf("var/cache/images/%d-%d/%s", width, height, filename)
 
-	if !tools.FileExists(cachePath) || true {
+	if !tools.FileExists(cachePath) {
 		log.Printf("💢 File %s is not cached", cachePath)
 		statusCode, err := backend.getFinalImageBytes(cachePath, func(img image.Image) image.Image {
 			img = imaging.Autocrop(img, 15, 3)
