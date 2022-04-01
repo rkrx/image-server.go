@@ -55,6 +55,7 @@ type ServerType struct {
 
 type Config struct {
 	LoggingEnabled     bool       `toml:"enableLogging"`
+	Secret             string     `toml:"secret"`
 	HashCacheFilenames bool       `toml:"hashCacheFilenames"`
 	Server             ServerType `toml:"server"`
 	Profiles           []Profile  `toml:"Profile"`

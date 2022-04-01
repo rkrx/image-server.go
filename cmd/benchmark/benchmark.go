@@ -1,9 +1,9 @@
-package main
+package benchmark
 
 import (
 	"fmt"
 	"image"
-	"image-server/imaging"
+	imaging2 "image-server/src/imaging"
 	"image/color"
 	_ "image/jpeg"
 	_ "image/png"
@@ -14,14 +14,14 @@ import (
 func doWork(img image.Image) {
 	w, h := 500, 500
 	newImg := img
-	newImg = imaging.Autocrop(img, 15, 3)
-	newImg = imaging.ResizeProportional(newImg, w, h)
-	newImg = imaging.Sharpen(newImg, 1)
-	newImg = imaging.SetCanvas(newImg, w, h, imaging.Center, imaging.Center, color.White)
+	newImg = imaging2.Autocrop(img, 15, 3)
+	newImg = imaging2.ResizeProportional(newImg, w, h)
+	newImg = imaging2.Sharpen(newImg, 1)
+	newImg = imaging2.SetCanvas(newImg, w, h, imaging2.Center, imaging2.Center, color.White)
 }
 
 func worker(caption string, c chan int) {
-	img, err := imaging.LoadImageFromFile("camera.jpeg")
+	img, err := imaging2.LoadImageFromFile("camera.jpeg")
 	if err != nil {
 		log.Fatal(err)
 	}

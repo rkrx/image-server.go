@@ -1,8 +1,7 @@
 /*
-!imaging
-!server
-!tools
-!var
+!/cmd
+!/pkg
+!/var
 !.gitignore
 !benchmark.go
 !go.mod

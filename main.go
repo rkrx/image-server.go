@@ -5,33 +5,29 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	_ "golang.org/x/net/http2/h2c"
-	"image-server/server"
-	"image-server/tools"
+	"image-server/src/server"
+	"image-server/src/tools"
 	_ "image/jpeg"
 	_ "image/png"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 )
 
-func ServeFromFile(filepath string, writer http.ResponseWriter) error {
-	bytes, err := os.ReadFile(filepath)
-	if err != nil {
-		return err
-	}
-	_, err = writer.Write(bytes)
-	return err
-}
-
 func main() {
-	log.Print("Start server...")
-
 	conf, err := tools.LoadConfig("config.toml")
 	if err != nil {
 		log.Fatalf("Can't load config.toml: %s", err)
 	}
 
-	log.SetOutput(os.Stdout)
+	if conf.LoggingEnabled {
+		log.SetOutput(os.Stdout)
+	} else {
+		log.SetOutput(ioutil.Discard)
+	}
+
+	log.Print("Start server...")
 
 	log.Printf("Original backend: %s", conf.Server.OriginalBackend)
 	log.Printf("Logging enabled: %t", conf.LoggingEnabled)
