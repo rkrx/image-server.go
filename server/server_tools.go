@@ -20,7 +20,7 @@ type Autocrop struct {
 }
 
 func (cmd *Autocrop) apply(img image.Image) image.Image {
-	return imaging.Autocrop(img, 15, float64(cmd.border))
+	return imaging.Autocrop(img, 15, float32(cmd.border))
 }
 
 type ResizeProportional struct {

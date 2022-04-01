@@ -7,7 +7,7 @@ import (
 	"math"
 )
 
-func Autocrop(img image.Image, tolerancePercent, borderPercent float64) image.Image {
+func Autocrop(img image.Image, tolerancePercent, borderPercent float32) image.Image {
 	measures := getAutocropMeasures(img, tolerancePercent, borderPercent)
 	newImg := image.NewRGBA(measures.target.Dim())
 	draw.Draw(newImg, measures.target.Dim(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
@@ -15,11 +15,11 @@ func Autocrop(img image.Image, tolerancePercent, borderPercent float64) image.Im
 	return newImg
 }
 
-func getAutocropMeasures(img image.Image, tolerancePercent, borderPercent float64) AutocropMeasures {
-	absTolerance := 0xFFFF - uint32(math.Round(float64(0xFFFF)/100.0*tolerancePercent))
+func getAutocropMeasures(img image.Image, tolerancePercent, borderPercent float32) AutocropMeasures {
+	absTolerance := 0xFFFF - uint32(math.Round(float64(0xFFFF)/100.0*float64(tolerancePercent)))
 
 	rect := GetInnerObjectBounds(img, absTolerance)
-	borderAbs := int(math.Round(math.Max(float64(rect.Dx())/100*borderPercent, float64(rect.Dy())/100*borderPercent)))
+	borderAbs := int(math.Round(math.Max(float64(rect.Dx())/100*float64(borderPercent), float64(rect.Dy())/100*float64(borderPercent))))
 
 	srcX, offsetX := getCoords(rect.Min.X, borderAbs)
 	srcY, offsetY := getCoords(rect.Min.Y, borderAbs)

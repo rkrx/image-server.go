@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/chai2010/webp"
 	"image"
 	"image-server/imaging"
 	"image-server/tools"
 	"image/color"
+	"image/gif"
+	_ "image/gif"
+	"image/png"
 	"io"
 	"log"
 	"net/http"
@@ -17,29 +21,75 @@ import (
 )
 
 type Backend struct {
-	BaseUri string
-	Logging bool
+	Config tools.Config
 }
 
 func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("RequestURI %s", r.RequestURI)
 	w.Header().Add("Cache-Control", "no-cache")
 
-	filename, width, height := parseRequestPath(r.RequestURI)
+	profile := tools.Profile{Width: 0, Height: 0}
 
-	cachePath := fmt.Sprintf("var/cache/images/%d-%d/%s", width, height, filename)
+	if r.URL.Query().Has("profile") {
+		profileName := r.URL.Query().Get("profile")
+		var err error
+		profile, err = backend.Config.GetProfile(profileName)
+		if err != nil {
+			w.WriteHeader(404)
+			return
+		}
+	} else {
+		profile.Name = ""
+		profile.Width, profile.Height = parseRequest(r.RequestURI)
+	}
+
+	if profile.Type == "" {
+		if r.URL.Query().Has("type") {
+			fileType := strings.ToLower(r.URL.Query().Get("type"))
+			switch fileType {
+			case "jpeg":
+				profile.Type = tools.Jpeg
+				break
+			case "webp":
+				profile.Type = tools.WebP
+				break
+			case "png":
+				profile.Type = tools.Png
+				break
+			case "gif":
+				profile.Type = tools.Gif
+				break
+			default:
+				log.Printf("unknown file type: %s", fileType)
+				return
+			}
+		}
+	}
+
+	origFilename, cachePath := "", ""
+	if backend.Config.HashCacheFilenames {
+		origFilename = tools.Md5(fmt.Sprintf("%s/%s", profile.GetDirectoryHash(), r.URL.Path))
+		cachePath = fmt.Sprintf("var/cache/images/%s.%s", origFilename, profile.Type)
+	} else {
+		origFilename = tools.Md5(r.URL.Path)
+		cachePath = fmt.Sprintf("var/cache/images/%s/%s.%s", profile.GetDirectoryHash(), origFilename, profile.Type)
+	}
+
+	if success, groups := tools.RegexMatch(r.URL.Path, "\\.(jpe?g|gif|png|webp)$"); success {
+		origFilename = fmt.Sprintf("%s.%s", origFilename, groups[1])
+	}
 
 	if !tools.FileExists(cachePath) {
 		log.Printf("💢 File %s is not cached", cachePath)
-		statusCode, err := backend.getFinalImageBytes(cachePath, func(img image.Image) image.Image {
-			if width == 0 && height == 0 {
-				width = img.Bounds().Dx()
-				height = img.Bounds().Dy()
+		statusCode, err := backend.getFinalImageBytes(r.URL.Path, origFilename, cachePath, profile, func(img image.Image) image.Image {
+			if profile.Width < 1 && profile.Height < 1 {
+				profile.Width = img.Bounds().Dx()
+				profile.Height = img.Bounds().Dy()
 			}
-			img = imaging.Autocrop(img, 15, 3)
-			img = imaging.ResizeProportional(img, width, height)
-			img = imaging.Sharpen(img, .6)
-			img = imaging.SetCanvas(img, width, height, imaging.Center, imaging.Center, color.White)
+			img = imaging.Autocrop(img, profile.Autocrop.Tolerance, profile.Autocrop.Border)
+			img = imaging.ResizeProportional(img, profile.Width, profile.Height)
+			img = imaging.Sharpen(img, float64(profile.Sharpen))
+			img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
 			return img
 		})
 
@@ -65,17 +115,16 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (backend Backend) getFinalImageBytes(cachePath string, fn func(image.Image) image.Image) (int, error) {
+func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath string, profile tools.Profile, fn func(image.Image) image.Image) (int, error) {
 	dir := filepath.Dir(cachePath)
 	os.MkdirAll(dir, os.ModePerm)
 
-	filename := filepath.Base(cachePath)
 	cachedOriginalPath := fmt.Sprintf("var/cache/originals/%s", filename)
 
 	if !tools.FileExists(cachedOriginalPath) {
-		imageContent, statusCode, err := backend.FetchImage(fmt.Sprintf("/%s", filename))
+		imageContent, statusCode, err := backend.FetchImage(requestPath)
 		if err != nil {
-			log.Printf("Error: %s (ResponseCode = %d)", err, statusCode)
+			log.Printf("Error: %s (ResponseCode = %d; RequestPath = %s; Backend = %s)", err, statusCode, requestPath, profile.Backend)
 			return statusCode, err
 		}
 
@@ -97,32 +146,60 @@ func (backend Backend) getFinalImageBytes(cachePath string, fn func(image.Image)
 
 	img = fn(img)
 
-	imgBytes, err := imaging.Img2JpegBytes(img, 100)
-	if err != nil {
-		log.Println(err)
-		return 500, err
+	if profile.Type == tools.Jpeg {
+		imgBytes, err := imaging.Img2JpegBytes(img, 100)
+		if err != nil {
+			return 500, err
+		}
+		err = os.WriteFile(cachePath, imgBytes, 0666)
+		if err != nil {
+			return 500, err
+		}
+	} else if profile.Type == tools.WebP {
+		err := webp.Save(cachePath, img, &webp.Options{Quality: 90})
+		if err != nil {
+			return 500, err
+		}
+	} else if profile.Type == tools.Png {
+		var buf = bytes.Buffer{}
+		err := png.Encode(&buf, img)
+		if err != nil {
+			return 500, err
+		}
+		err = os.WriteFile(cachePath, buf.Bytes(), 0666)
+		if err != nil {
+			return 500, err
+		}
+	} else if profile.Type == tools.Gif {
+		var buf = bytes.Buffer{}
+		err := gif.Encode(&buf, img, &gif.Options{})
+		if err != nil {
+			return 500, err
+		}
+		err = os.WriteFile(cachePath, buf.Bytes(), 0666)
+		if err != nil {
+			return 500, err
+		}
 	}
-
-	os.WriteFile(cachePath, imgBytes, 0666)
 
 	return 200, nil
 }
 
-func parseRequestPath(requestPath string) (filename string, width int, height int) {
+func parseRequest(requestPath string) (width int, height int) {
 	if success, groups := tools.RegexMatch(requestPath, "^/(\\d+)-(\\d+)/(.*?)$"); success {
 		width = tools.ToIntOr(groups[1], width)
 		height = tools.ToIntOr(groups[2], height)
-		filename = groups[3]
 	} else {
 		width = 0
 		height = 0
-		filename = strings.TrimLeft(requestPath, "/")
 	}
 	return
 }
 
 func (backend *Backend) FetchImage(path string) ([]byte, int, error) {
-	fetchUrl := fmt.Sprintf("%s%s", backend.BaseUri, path)
+	backendStr := strings.TrimRight(backend.Config.Server.OriginalBackend, "/")
+	path = strings.TrimLeft(path, "/")
+	fetchUrl := fmt.Sprintf("%s/%s", backendStr, path)
 	resp, err := http.Get(fetchUrl)
 	if err != nil {
 		return nil, 500, err
