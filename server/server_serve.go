@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Backend struct {
@@ -31,6 +32,10 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !tools.FileExists(cachePath) {
 		log.Printf("💢 File %s is not cached", cachePath)
 		statusCode, err := backend.getFinalImageBytes(cachePath, func(img image.Image) image.Image {
+			if width == 0 && height == 0 {
+				width = img.Bounds().Dx()
+				height = img.Bounds().Dy()
+			}
 			img = imaging.Autocrop(img, 15, 3)
 			img = imaging.ResizeProportional(img, width, height)
 			img = imaging.Sharpen(img, .6)
@@ -109,9 +114,9 @@ func parseRequestPath(requestPath string) (filename string, width int, height in
 		height = tools.ToIntOr(groups[2], height)
 		filename = groups[3]
 	} else {
-		width = 64
-		height = 64
-		filename = requestPath
+		width = 0
+		height = 0
+		filename = strings.TrimLeft(requestPath, "/")
 	}
 	return
 }

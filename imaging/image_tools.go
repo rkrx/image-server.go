@@ -7,7 +7,6 @@ import (
 	"github.com/nfnt/resize"
 	"image"
 	"image/jpeg"
-	_ "image/jpeg"
 	_ "image/png"
 	"log"
 	"os"

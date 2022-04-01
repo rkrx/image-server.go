@@ -11,6 +11,7 @@ type autocrop struct {
 
 type profile struct {
 	Name     string
+	Backend  string
 	Width    uint32
 	Height   uint32
 	Sharpen  float32
