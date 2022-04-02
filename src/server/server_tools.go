@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	imaging2 "image-server/pkg/imaging"
-	"image-server/pkg/tools"
+	"image-server/src/imaging"
+	"image-server/src/tools"
 	"log"
 	"strings"
 )
@@ -20,7 +20,7 @@ type Autocrop struct {
 }
 
 func (cmd *Autocrop) apply(img image.Image) image.Image {
-	return imaging2.Autocrop(img, 15, float32(cmd.border))
+	return imaging.Autocrop(img, 15, float32(cmd.border))
 }
 
 type ResizeProportional struct {
@@ -35,7 +35,7 @@ func (cmd *ResizeProportional) apply(img image.Image) image.Image {
 	if cmd.height == -1 {
 		cmd.height = img.Bounds().Dy()
 	}
-	return imaging2.ResizeProportional(img, cmd.width, cmd.height)
+	return imaging.ResizeProportional(img, cmd.width, cmd.height)
 }
 
 // Example: /ac15,3/rp500-auto/sh0.6/hsABCDEFG/camera.jpeg/webp

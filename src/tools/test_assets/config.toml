@@ -1,8 +1,17 @@
 enableLogging = true
+hashCacheFilenames = true
+secret = "leave-a-random-string-here"
 
 [server]
 listenAddr = "0.0.0.0:8080"
 originalBackend = "https://127.0.0.1/original"
+
+[jpegDefaults]
+quality = 85
+
+[webpDefaults]
+quality = 80
+lossless = true
 
 [[profile]]
 name = "500px"

@@ -6,7 +6,9 @@ import (
 	im "github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	"image"
+	"image/gif"
 	"image/jpeg"
+	"image/png"
 	_ "image/png"
 	"log"
 	"os"
@@ -49,8 +51,22 @@ func SaveToJpegFile(img image.Image, filepath string, quality int) error {
 	return os.WriteFile(filepath, buf.Bytes(), 0666)
 }
 
-func SaveToWebpFile(img image.Image, filepath string, options *webp.Options) error {
-	return webp.Save(filepath, img, options)
+func SaveToPngFile(img image.Image, filepath string) error {
+	var buf = bytes.Buffer{}
+	err := png.Encode(&buf, img)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath, buf.Bytes(), 0666)
+}
+
+func SaveToGifFile(img image.Image, filepath string, options *gif.Options) error {
+	var buf = bytes.Buffer{}
+	err := gif.Encode(&buf, img, options)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath, buf.Bytes(), 0666)
 }
 
 func Img2WebpBuffer(buf *bytes.Buffer, img image.Image, quality float32) error {
