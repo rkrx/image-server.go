@@ -87,14 +87,14 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("File in cache: %s", cachePath)
 	}
 
-	imgBytes, err := os.ReadFile(cachePath)
+	file, err := os.Open(cachePath)
 	if err != nil {
-		log.Printf("Could not read file %s: %s", cachePath, err)
+		log.Printf("Could not open file %s: %s", cachePath, err)
 		w.WriteHeader(500)
 		return
 	}
-
-	_, err = w.Write(imgBytes)
+	defer file.Close()
+	_, err = io.Copy(w, file)
 	if err != nil {
 		log.Println(err)
 		return
