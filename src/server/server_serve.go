@@ -24,10 +24,9 @@ type Backend struct {
 }
 
 func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("RequestURI %s", r.RequestURI)
 	w.Header().Add("Cache-Control", "no-cache")
 
-	profile := tools.Profile{Width: 0, Height: 0}
+	profile := tools.Profile{Type: tools.Jpeg, Width: 0, Height: 0}
 
 	if r.URL.Query().Has("profile") {
 		profileName := r.URL.Query().Get("profile")
@@ -38,14 +37,18 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := applyUrlParameters(profile, r.RequestURI, r.URL.Query()); err != nil {
+	if err := applyUrlParameters(&profile, r.RequestURI, r.URL.Query(), backend.Config.Secret); err != nil {
 		w.WriteHeader(403)
 		return
 	}
 
 	if r.URL.Query().Has("type") {
 		fileType := strings.ToLower(r.URL.Query().Get("type"))
-		profile.ApplyFileType(fileType)
+		if err := profile.ApplyFileType(fileType); err != nil {
+			w.WriteHeader(403)
+			w.Write([]byte(err.Error()))
+			return
+		}
 	}
 
 	origFilename, cachePath := "", ""
@@ -62,7 +65,7 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !tools.FileExists(cachePath) {
-		log.Printf("💢 File %s is not cached", cachePath)
+		log.Printf("File not in cache: %s", cachePath)
 		statusCode, err := backend.getFinalImageBytes(r.URL.Path, origFilename, cachePath, profile, func(img image.Image) image.Image {
 			if profile.Width < 1 && profile.Height < 1 {
 				profile.Width = img.Bounds().Dx()
@@ -76,11 +79,12 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
+			log.Print(err)
 			w.WriteHeader(statusCode)
 			return
 		}
 	} else {
-		log.Printf("✅ File %s is cached", cachePath)
+		log.Printf("File in cache: %s", cachePath)
 	}
 
 	imgBytes, err := os.ReadFile(cachePath)
@@ -97,7 +101,7 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func applyUrlParameters(profile tools.Profile, requestUri string, values url.Values) error {
+func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Values, secret string) error {
 	var tryApplyUrlParameter = func(key string, fn func(value string) bool) func() bool {
 		return func() bool {
 			if values.Has(key) {
@@ -139,14 +143,14 @@ func applyUrlParameters(profile tools.Profile, requestUri string, values url.Val
 		}
 	}
 
-	if parameterFound && !extractHashFromRequestUri(requestUri, values) {
+	if parameterFound && !extractHashFromRequestUri(requestUri, values, secret) {
 		return errors.New("hash value failure")
 	}
 
 	return nil
 }
 
-func extractHashFromRequestUri(requestUri string, values url.Values) bool {
+func extractHashFromRequestUri(requestUri string, values url.Values, secret string) bool {
 	if values.Has("hash") {
 		var hash string
 		success, groups := tools.RegexMatch(requestUri, "\\?.*?&hash=([a-f0-9]+)(&|$)")
@@ -154,8 +158,8 @@ func extractHashFromRequestUri(requestUri string, values url.Values) bool {
 			hash = groups[1]
 
 			requestUriWoHash := tools.RegexReplace(requestUri, "(\\?.*?)(&hash=(?:[a-f0-9]+))(&|$)", "$1$3")
-			log.Printf("RequestURI w/o hash %s", requestUriWoHash)
-			if tools.Md5(requestUriWoHash) == hash {
+			expectedHash := tools.Md5(fmt.Sprintf("%s%s", requestUriWoHash, secret))[:10]
+			if expectedHash == hash {
 				return true
 			}
 		}
@@ -165,7 +169,11 @@ func extractHashFromRequestUri(requestUri string, values url.Values) bool {
 
 func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath string, profile tools.Profile, fn func(image.Image) image.Image) (int, error) {
 	dir := filepath.Dir(cachePath)
-	os.MkdirAll(dir, os.ModePerm)
+	if !tools.FileExists(dir) {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return 500, err
+		}
+	}
 
 	cachedOriginalPath := fmt.Sprintf("var/cache/originals/%s", filename)
 
@@ -176,7 +184,9 @@ func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath strin
 			return statusCode, err
 		}
 
-		os.WriteFile(cachedOriginalPath, imageContent, 0666)
+		if err := os.WriteFile(cachedOriginalPath, imageContent, 0666); err != nil {
+			return 500, err
+		}
 	}
 
 	imageContent, err := os.ReadFile(cachedOriginalPath)
@@ -213,9 +223,11 @@ func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath strin
 		if err := imaging.SaveToGifFile(img, cachePath, &gif.Options{}); err != nil {
 			return 500, err
 		}
+	default:
+		return 500, errors.New(fmt.Sprintf("no encoder for filetype %s implemented", profile.Type))
 	}
 
-	return 500, errors.New(fmt.Sprintf("no encoder for filetype %s implemented", profile.Type))
+	return 200, nil
 }
 
 func parseRequest(requestPath string) (width int, height int) {
