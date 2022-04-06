@@ -1,4 +1,5 @@
 FROM golang:1.18.0-alpine3.15
+RUN apk add gcc g++ zlib zlib-dev
 WORKDIR /app
 COPY src /app/src
 COPY go.mod /app/

@@ -7,6 +7,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -146,16 +147,30 @@ func LoadConfig(filename string) (Config, error) {
 	conf.LoggingEnabled = true
 	conf.HashCacheFilenames = false
 	conf.Secret = ""
+
 	conf.ImageOriginalDir = coalesce(
 		os.Getenv("GO_IMG_SRV_VAR_ORIGINALS_DIR"),
-		fmt.Sprintf("%s/%s", os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "/originals"),
+		filepath.Join(os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "originals"),
 		"var/cache/originals",
 	)
+
+	if !FileExists(conf.ImageOriginalDir) {
+		if err := os.MkdirAll(conf.ImageOriginalDir, 0777); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	conf.ImageCacheDir = coalesce(
 		os.Getenv("GO_IMG_SRV_VAR_IMAGES_DIR"),
-		fmt.Sprintf("%s/%s", os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "/images"),
+		filepath.Join(os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "images"),
 		"var/cache/images",
 	)
+
+	if !FileExists(conf.ImageCacheDir) {
+		if err := os.MkdirAll(conf.ImageOriginalDir, 0777); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	conf.JpegDefaults.Quality = 90
 	conf.WebpDefaults.Quality = 90

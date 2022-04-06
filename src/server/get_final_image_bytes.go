@@ -24,7 +24,7 @@ func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath strin
 		}
 	}
 
-	cachedOriginalPath := fmt.Sprintf("%s/%s", profile.ImageOriginalDir, filename)
+	cachedOriginalPath := filepath.Join(profile.ImageOriginalDir, filename)
 
 	if !tools.FileExists(cachedOriginalPath) {
 		imageContent, statusCode, err := backend.FetchImage(requestPath)

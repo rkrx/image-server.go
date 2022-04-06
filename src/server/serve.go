@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -84,11 +85,11 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//region Project the origFilename and the cachePath
 	origFilename, cachePath := "", ""
 	if backend.Config.HashCacheFilenames {
-		origFilename = tools.Md5(fmt.Sprintf("%s/%s", profile.GetDirectoryHash(), r.URL.Path))
-		cachePath = fmt.Sprintf("%s/%s.%s", profile.ImageCacheDir, origFilename, profile.Type)
+		origFilename = tools.Md5(filepath.Join(profile.GetDirectoryHash(), r.URL.Path))
+		cachePath = filepath.Join(profile.ImageCacheDir, fmt.Sprintf("%s.%s", origFilename, profile.Type))
 	} else {
 		origFilename = tools.Md5(r.URL.Path)
-		cachePath = fmt.Sprintf("%s/%s/%s.%s", profile.ImageCacheDir, profile.GetDirectoryHash(), origFilename, profile.Type)
+		cachePath = filepath.Join(profile.ImageCacheDir, profile.GetDirectoryHash(), fmt.Sprintf("%s.%s", origFilename, profile.Type))
 	}
 
 	if success, groups := tools.RegexMatch(r.URL.Path, "\\.(jpe?g|gif|png|webp)$"); success {

@@ -1,7 +1,6 @@
 package caching
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -9,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"log"
-	"strings"
+	fp "path/filepath"
 )
 
 type S3Config struct {
@@ -31,7 +30,7 @@ func (conf *S3Config) NewSession() (*session.Session, error) {
 }
 
 func (conf *S3Config) concatFilename(filepath string) string {
-	return fmt.Sprintf("%s/%s", strings.TrimRight(conf.PathPrefix, "/"), strings.TrimLeft(filepath, "/"))
+	return fp.Join(conf.PathPrefix, filepath)
 }
 
 func (conf *S3Config) Has(filepath string) (bool, error) {
