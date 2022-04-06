@@ -1,18 +1,36 @@
 package imaging
 
+import "math"
+
 func CalcProportionalResize(imgWidth, imgHeight, destWidth, destHeight int) (int, int) {
-	if imgWidth > imgHeight {
-		resWidth := destWidth
-		resHeight := imgHeight * destWidth / imgWidth
-		if resHeight > destHeight {
-			return imgWidth * destHeight / imgHeight, destHeight
+	srcW, srcH, dstW, dstH := float64(imgWidth), float64(imgHeight), float64(destWidth), float64(destHeight)
+
+	roundedInt := func(val float64) int {
+		return int(math.Round(val))
+	}
+
+	if dstH == 0 && dstW > 0 {
+		dstH = dstW / srcW * srcH
+	} else if dstW == 0 && dstH > 0 {
+		dstW = dstH / srcH * srcW
+	} else if dstW == 0 && dstH == 0 {
+		dstW, dstH = srcW, srcH
+	}
+
+	if srcW > srcH {
+		resWidth := dstW
+		resHeight := srcH * dstW / srcW
+		if resHeight > dstH {
+			return roundedInt(srcW * dstH / srcH), roundedInt(dstH)
 		}
-		return resWidth, resHeight
+		return roundedInt(resWidth), roundedInt(resHeight)
 	}
-	resWidth := imgWidth * destHeight / imgHeight
-	resHeight := destHeight
-	if resWidth > destWidth {
-		return destWidth, imgHeight * destWidth / imgWidth
+
+	resWidth := srcW * dstH / srcH
+	resHeight := dstH
+	if resWidth > dstW {
+		return roundedInt(dstW), roundedInt(srcH * dstW / srcW)
 	}
-	return resWidth, resHeight
+
+	return roundedInt(resWidth), roundedInt(resHeight)
 }

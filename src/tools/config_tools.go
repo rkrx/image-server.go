@@ -24,13 +24,15 @@ const (
 )
 
 type Profile struct {
-	Name     string
-	Backend  string
-	Type     FileType
-	Width    int
-	Height   int
-	Sharpen  float32
-	Autocrop autocrop
+	Name             string
+	ImageOriginalDir string
+	ImageCacheDir    string
+	Backend          string
+	Type             FileType
+	Width            int
+	Height           int
+	Sharpen          float32
+	Autocrop         autocrop
 }
 
 // ApplyFileType Sets Profile.Type to a valid file type based on string filetype. If fileType is not recognized or
@@ -72,8 +74,10 @@ func (profile Profile) GetDirectoryHash() string {
 }
 
 type ServerType struct {
-	ListenAddr      string
-	OriginalBackend string
+	ListenAddr             string
+	OriginalBackend        string
+	ImageProcessingWorkers int
+	RemoteAddrHeader       string
 }
 
 type JpegDefaults struct {
@@ -86,22 +90,44 @@ type WebpDefaults struct {
 }
 
 type Config struct {
-	LoggingEnabled     bool         `toml:"enableLogging"`
-	Secret             string       `toml:"secret"`
-	HashCacheFilenames bool         `toml:"hashCacheFilenames"`
-	Server             ServerType   `toml:"server"`
-	Profiles           []Profile    `toml:"profile"`
-	JpegDefaults       JpegDefaults `toml:"jpegDefaults"`
-	WebpDefaults       WebpDefaults `toml:"webpDefaults"`
+	LoggingEnabled                     bool         `toml:"enableLogging"`
+	Secret                             string       `toml:"secret"`
+	DisableHashChecking                bool         `toml:"disableHashChecking"`
+	DisableHashCheckingFromIPv4Sources []string     `toml:"disableHashCheckingFromIPv4Sources"`
+	DisableCaching                     bool         `toml:"disableCaching"`
+	HashCacheFilenames                 bool         `toml:"hashCacheFilenames"`
+	ImageOriginalDir                   string       `toml:"imageOriginalDir"`
+	ImageCacheDir                      string       `toml:"imageCacheDir"`
+	Server                             ServerType   `toml:"server"`
+	Profiles                           []Profile    `toml:"profile"`
+	JpegDefaults                       JpegDefaults `toml:"jpegDefaults"`
+	WebpDefaults                       WebpDefaults `toml:"webpDefaults"`
 }
 
 func (conf Config) GetProfile(name string) (Profile, error) {
 	for _, profile := range conf.Profiles {
 		if profile.Name == name {
-			return profile, nil
+			return conf.SetProfileDefaults(profile), nil
 		}
 	}
-	return Profile{}, errors.New("profile not found")
+	return conf.GetDefaultProfile(), errors.New("profile not found")
+}
+
+func (conf Config) SetProfileDefaults(profile Profile) Profile {
+	if profile.Type == "" {
+		profile.Type = Jpeg
+	}
+	if profile.ImageOriginalDir == "" {
+		profile.ImageOriginalDir = conf.ImageOriginalDir
+	}
+	if profile.ImageCacheDir == "" {
+		profile.ImageCacheDir = conf.ImageCacheDir
+	}
+	return profile
+}
+
+func (conf Config) GetDefaultProfile() Profile {
+	return conf.SetProfileDefaults(Profile{})
 }
 
 func LoadConfig(filename string) (Config, error) {
@@ -110,6 +136,9 @@ func LoadConfig(filename string) (Config, error) {
 	conf.LoggingEnabled = true
 	conf.HashCacheFilenames = false
 	conf.Secret = ""
+	conf.ImageOriginalDir = "var/cache/originals"
+	conf.ImageCacheDir = "var/cache/images"
+
 	conf.JpegDefaults.Quality = 90
 	conf.WebpDefaults.Quality = 90
 	conf.WebpDefaults.Lossless = false

@@ -1,6 +1,7 @@
 /*
 !/cmd
-!/pkg
+!/doc
+!/src
 !/var
 !.gitignore
 !benchmark.go

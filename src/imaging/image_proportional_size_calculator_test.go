@@ -19,12 +19,24 @@ func TestCalcProportionalSize(t *testing.T) {
 	w, h = CalcProportionalResize(300, 300, 450, 300)
 	assert.Equal(t, 300, w)
 	assert.Equal(t, 300, h)
+
+	w, h = CalcProportionalResize(300, 300, 0, 500)
+	assert.Equal(t, 500, w)
+	assert.Equal(t, 500, h)
+
+	w, h = CalcProportionalResize(300, 300, 500, 0)
+	assert.Equal(t, 500, w)
+	assert.Equal(t, 500, h)
+
+	w, h = CalcProportionalResize(300, 300, 0, 0)
+	assert.Equal(t, 300, w)
+	assert.Equal(t, 300, h)
 }
 
 func TestCalcProportionalSize_RealWorld(t *testing.T) {
 	var w, h int
 
 	w, h = CalcProportionalResize(2119, 2120, 300, 300)
-	assert.Equal(t, 299, w)
+	assert.Equal(t, 300, w)
 	assert.Equal(t, 300, h)
 }

@@ -27,7 +27,19 @@ func TestConfig_GetProfile(t *testing.T) {
 	assert.Nil(t, err)
 	profile, err := conf.GetProfile("250px")
 	assert.Nil(t, err)
-	assert.Equal(t, Profile{Name: "250px", Width: 250, Height: 250, Sharpen: 0.6, Autocrop: autocrop{Tolerance: 15, Border: 3}}, profile)
+
+	expectedProfile := Profile{
+		Name:             "250px",
+		ImageOriginalDir: "var/cache/originals",
+		ImageCacheDir:    "var/cache/images",
+		Type:             Jpeg,
+		Width:            250,
+		Height:           250,
+		Sharpen:          0.6,
+		Autocrop:         autocrop{Tolerance: 15, Border: 3},
+	}
+
+	assert.Equal(t, expectedProfile, profile)
 }
 
 func TestProfile_GetDirectoryHash(t *testing.T) {
