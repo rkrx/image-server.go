@@ -4,6 +4,7 @@
 !/src
 !/var
 !.gitignore
+!Dockerfile
 !benchmark.go
 !go.mod
 !main.go

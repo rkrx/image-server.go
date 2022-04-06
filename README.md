@@ -2,6 +2,20 @@
 
 A reverse proxy that brings images to a specific size, can automatically crop away excess white space, and has a few other features. This project follows the [RESTful Image API Specification](https://github.com/riapi/riapi) with some additions and was primarily written for content management systems where images uploaded by less technical users should be easily corrected and output in different sizes at the end.
 
+## Docker
+
+Build the image
+
+```
+docker build -t go-image-server .
+```
+
+Run the server
+
+```
+docker run -d --restart unless-stopped --name go-image-server -p 127.0.0.1:10080:8080 go-image-server
+```
+
 ## Principle of operation
 
 ## Parameters

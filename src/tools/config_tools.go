@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -133,11 +134,28 @@ func (conf Config) GetDefaultProfile() Profile {
 func LoadConfig(filename string) (Config, error) {
 	var conf Config
 
+	coalesce := func(str ...string) string {
+		for _, s := range str {
+			if s != "" {
+				return s
+			}
+		}
+		return ""
+	}
+
 	conf.LoggingEnabled = true
 	conf.HashCacheFilenames = false
 	conf.Secret = ""
-	conf.ImageOriginalDir = "var/cache/originals"
-	conf.ImageCacheDir = "var/cache/images"
+	conf.ImageOriginalDir = coalesce(
+		os.Getenv("GO_IMG_SRV_VAR_ORIGINALS_DIR"),
+		fmt.Sprintf("%s/%s", os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "/originals"),
+		"var/cache/originals",
+	)
+	conf.ImageCacheDir = coalesce(
+		os.Getenv("GO_IMG_SRV_VAR_IMAGES_DIR"),
+		fmt.Sprintf("%s/%s", os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "/images"),
+		"var/cache/images",
+	)
 
 	conf.JpegDefaults.Quality = 90
 	conf.WebpDefaults.Quality = 90
