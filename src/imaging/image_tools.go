@@ -24,8 +24,11 @@ func Height(img image.Image) int {
 
 func ResizeProportional(img image.Image, width, height int) image.Image {
 	imgW, imgH := Width(img), Height(img)
-	w, h := CalcProportionalResize(imgW, imgH, width, height)
-	return resize.Resize(uint(w), uint(h), img, resize.Lanczos3)
+	if imgW != width || imgH != height {
+		w, h := CalcProportionalResize(imgW, imgH, width, height)
+		return resize.Resize(uint(w), uint(h), img, resize.Lanczos3)
+	}
+	return img
 }
 
 func Sharpen(img image.Image, sigma float64) *image.NRGBA {
