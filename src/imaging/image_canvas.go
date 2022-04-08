@@ -16,19 +16,24 @@ const (
 )
 
 func SetCanvas(img image.Image, width, height int, horizontalPos, verticalPos Positioning, backgroundColor color.Color) image.Image {
+	imgDx := img.Bounds().Dx()
+	imgDy := img.Bounds().Dy()
+	if imgDx == width && imgDy == height {
+		return img
+	}
 	if width == 0 {
-		width = img.Bounds().Dx()
+		width = imgDx
 	}
 	if height == 0 {
-		height = img.Bounds().Dy()
+		height = imgDy
 	}
 	rect := image.Rect(0, 0, width, height)
 	newImg := image.NewRGBA(rect)
 	draw.Draw(newImg, newImg.Rect, &image.Uniform{C: backgroundColor}, image.Point{}, draw.Src)
 	sb := img.Bounds()
 	db := newImg.Bounds()
-	x := alignValue(db.Dx(), sb.Dx(), horizontalPos)
-	y := alignValue(db.Dy(), sb.Dy(), verticalPos)
+	x := alignValue(db.Dx(), imgDx, horizontalPos)
+	y := alignValue(db.Dy(), imgDy, verticalPos)
 	copy.Copy(newImg, image.Point{X: x, Y: y}, img, sb, draw.Over, nil)
 	return newImg
 }
