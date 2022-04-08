@@ -6,8 +6,8 @@ COPY go.mod /app/
 COPY go.sum /app/
 COPY main.go /app/
 COPY config.toml /app/
-RUN mkdir /var/image-server
-VOLUME /var/image-server
+RUN mkdir /var/cache/image-server
+VOLUME /var/cache/image-server
 EXPOSE 8080/tcp
-ENV GO_IMG_SRV_VAR_CACHE_DIR=/var/cache
+ENV GO_IMG_SRV_VAR_CACHE_DIR=/var/cache/image-server
 CMD ["go", "run", "main.go"]
