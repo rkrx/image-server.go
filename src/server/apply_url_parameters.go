@@ -34,6 +34,7 @@ func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Va
 			if success, groups := tools.RegexMatch(value, "^(\\d+)(?:,(\\d+))?$"); success {
 				tolerance := tools.ToFloat32Or(groups[1], -1)
 				border := tools.ToFloat32Or(groups[2], 0)
+				profile.Autocrop.Apply = true
 				profile.Autocrop.Tolerance = tolerance
 				profile.Autocrop.Border = border
 			}

@@ -12,6 +12,7 @@ import (
 )
 
 type autocrop struct {
+	Apply     bool
 	Tolerance float32
 	Border    float32
 }

@@ -105,7 +105,11 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				profile.Width = img.Bounds().Dx()
 				profile.Height = img.Bounds().Dy()
 			}
-			img = imaging.Autocrop(img, profile.Autocrop.Tolerance, profile.Autocrop.Border)
+
+			if profile.Autocrop.Apply {
+				img = imaging.Autocrop(img, profile.Autocrop.Tolerance, profile.Autocrop.Border)
+			}
+
 			img = imaging.ResizeProportional(img, profile.Width, profile.Height)
 			img = imaging.Sharpen(img, float64(profile.Sharpen))
 			img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
