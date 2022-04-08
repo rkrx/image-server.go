@@ -31,8 +31,11 @@ func ResizeProportional(img image.Image, width, height int) image.Image {
 	return img
 }
 
-func Sharpen(img image.Image, sigma float64) *image.NRGBA {
-	return im.Sharpen(img, sigma)
+func Sharpen(img image.Image, sigma float64) image.Image {
+	if sigma > 0.000001 {
+		return im.Sharpen(img, sigma)
+	}
+	return img
 }
 
 func LoadImageFromFile(filename string) (image.Image, error) {
