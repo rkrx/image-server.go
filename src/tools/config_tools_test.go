@@ -1,8 +1,9 @@
 package tools
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -30,8 +31,8 @@ func TestConfig_GetProfile(t *testing.T) {
 
 	expectedProfile := Profile{
 		Name:             "250px",
-		ImageOriginalDir: "var/cache/originals",
-		ImageCacheDir:    "var/cache/images",
+		ImageOriginalDir: "originals",
+		ImageCacheDir:    "images",
 		Type:             Jpeg,
 		Width:            250,
 		Height:           250,
