@@ -1,10 +1,11 @@
 package imaging
 
 import (
-	"golang.org/x/image/draw"
-	copy "golang.org/x/image/draw"
 	"image"
 	"image/color"
+
+	"golang.org/x/image/draw"
+	copy "golang.org/x/image/draw"
 )
 
 func GetInnerObjectBounds(img image.Image, toleranceUpper uint32) image.Rectangle {
@@ -15,15 +16,17 @@ func GetInnerObjectBounds(img image.Image, toleranceUpper uint32) image.Rectangl
 	draw.Draw(newImg, newImg.Rect, &image.Uniform{C: color.White}, image.Point{}, draw.Src)
 	copy.Copy(newImg, image.Point{X: 0, Y: 0}, img, img.Bounds(), draw.Over, nil)
 
-	t := getBorderBounds(newImg, 0, w-1, 1, 0, h-1, 1, toleranceUpper, false)
-	r := getBorderBounds(newImg, 0, h-1, 1, w-1, 0, -1, toleranceUpper, true)
-	b := getBorderBounds(newImg, 0, w-1, 1, h-1, 0, -1, toleranceUpper, false)
-	l := getBorderBounds(newImg, 0, h-1, 1, 0, w-1, 1, toleranceUpper, true)
+	t, r, b, l := make(chan int), make(chan int), make(chan int), make(chan int)
 
-	return image.Rect(l+1, t+1, r, b)
+	go findBorderBounds(t, newImg, 0, w-1, 1, 0, h-1, 1, toleranceUpper, false)
+	go findBorderBounds(r, newImg, 0, h-1, 1, w-1, 0, -1, toleranceUpper, true)
+	go findBorderBounds(b, newImg, 0, w-1, 1, h-1, 0, -1, toleranceUpper, false)
+	go findBorderBounds(l, newImg, 0, h-1, 1, 0, w-1, 1, toleranceUpper, true)
+
+	return image.Rect(<-l+1, <-t+1, <-r, <-b)
 }
 
-func getBorderBounds(img *image.NRGBA, startX int, endX int, incX int, startY int, endY int, incY int, toleranceUpper uint32, transpose bool) int {
+func findBorderBounds(res chan int, img *image.NRGBA, startX int, endX int, incX int, startY int, endY int, incY int, toleranceUpper uint32, transpose bool) {
 	var r, g, b uint32
 	var x, y int
 
@@ -36,10 +39,11 @@ func getBorderBounds(img *image.NRGBA, startX int, endX int, incX int, startY in
 			}
 
 			if r < toleranceUpper || g < toleranceUpper || b < toleranceUpper {
-				return y - incY
+				res <- y - incY
+				return
 			}
 		}
 	}
 
-	return endY
+	res <- endY
 }
