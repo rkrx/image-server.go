@@ -5,6 +5,7 @@ import (
 	"github.com/chai2010/webp"
 	im "github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
+	exifremove "github.com/scottleedavis/go-exif-remove"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -54,7 +55,12 @@ func SaveToJpegFile(img image.Image, filepath string, quality int) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath, buf.Bytes(), 0666)
+	imBytes := buf.Bytes()
+	noExifBytes, err := exifremove.Remove(imBytes)
+	if err == nil {
+		return os.WriteFile(filepath, noExifBytes, 0666)
+	}
+	return os.WriteFile(filepath, imBytes, 0666)
 }
 
 func SaveToPngFile(img image.Image, filepath string) error {
@@ -63,7 +69,12 @@ func SaveToPngFile(img image.Image, filepath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath, buf.Bytes(), 0666)
+	imBytes := buf.Bytes()
+	noExifBytes, err := exifremove.Remove(imBytes)
+	if err == nil {
+		return os.WriteFile(filepath, noExifBytes, 0666)
+	}
+	return os.WriteFile(filepath, imBytes, 0666)
 }
 
 func SaveToGifFile(img image.Image, filepath string, options *gif.Options) error {
