@@ -6,6 +6,7 @@ COPY go.mod /app/
 COPY go.sum /app/
 COPY main.go /app/
 COPY config.toml /app/
+RUN go get
 RUN mkdir /var/cache/image-server
 VOLUME /var/cache/image-server
 EXPOSE 8080/tcp
