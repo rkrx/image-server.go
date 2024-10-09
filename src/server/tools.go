@@ -35,7 +35,7 @@ func (cmd *ResizeProportional) apply(img image.Image) image.Image {
 	if cmd.height == -1 {
 		cmd.height = img.Bounds().Dy()
 	}
-	return imaging.ResizeProportional(img, cmd.width, cmd.height)
+	return imaging.ResizeProportional(img, cmd.width, cmd.height, imaging.Contain)
 }
 
 // Example: /ac15,3/rp500-auto/sh0.6/hsABCDEFG/camera.jpeg/webp

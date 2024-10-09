@@ -110,9 +110,28 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				img = imaging.Autocrop(img, profile.Autocrop.Tolerance, profile.Autocrop.Border)
 			}
 
-			img = imaging.ResizeProportional(img, profile.Width, profile.Height)
-			img = imaging.Sharpen(img, float64(profile.Sharpen))
-			img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
+			if profile.Mode == "proportional" {
+				img = imaging.ResizeProportional(img, profile.Width, profile.Height, imaging.Contain)
+				img = imaging.Sharpen(img, float64(profile.Sharpen))
+			}
+
+			if profile.Mode == "contain" {
+				img = imaging.ResizeProportional(img, profile.Width, profile.Height, imaging.Contain)
+				img = imaging.Sharpen(img, float64(profile.Sharpen))
+				img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
+			}
+
+			if profile.Mode == "cover" {
+				img = imaging.ResizeProportional(img, profile.Width, profile.Height, imaging.Cover)
+				img = imaging.Sharpen(img, float64(profile.Sharpen))
+				img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
+			}
+
+			if profile.Mode == "stretch" {
+				img = imaging.Resize(img, profile.Width, profile.Height)
+				img = imaging.Sharpen(img, float64(profile.Sharpen))
+			}
+
 			return img
 		})
 
