@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 	"image-server/src/server"
 	"image-server/src/tools"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -21,7 +21,7 @@ func main() {
 	if conf.LoggingEnabled {
 		log.SetOutput(os.Stdout)
 	} else {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 
 	log.Print("Start server...")
