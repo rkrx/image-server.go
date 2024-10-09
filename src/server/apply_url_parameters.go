@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Values, secret string, diableHashChecking bool) error {
+func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Values, secret string, disableHashChecking bool) error {
 	var tryApplyUrlParameter = func(key string, fn func(value string) bool) func() bool {
 		return func() bool {
 			if values.Has(key) {
@@ -24,6 +24,16 @@ func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Va
 		}),
 		tryApplyUrlParameter("height", func(value string) bool {
 			profile.Height = tools.ToIntOr(value, profile.Height)
+			return true
+		}),
+		tryApplyUrlParameter("mode", func(value string) bool {
+			if value == "proportional" || value == "contain" || value == "cover" || value == "stretch" {
+				// fit: The image is proportionally scaled to fit within the specified width and height, without enlarging the canvas.
+				// contain: The image is scaled to fully fit within the specified width and height of the canvas.
+				// cover: The image is scaled to fill the entire specified width and height of the canvas, with portions of the image possibly being cropped.
+				// stretch: The image is scaled to completely fill the specified width and height of the canvas, disregarding the original aspect ratio.
+				profile.Mode = value
+			}
 			return true
 		}),
 		tryApplyUrlParameter("sharpen", func(value string) bool {
@@ -49,7 +59,7 @@ func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Va
 		}
 	}
 
-	if parameterFound && !diableHashChecking && !extractHashFromRequestUri(requestUri, values, secret) {
+	if parameterFound && !disableHashChecking && !extractHashFromRequestUri(requestUri, values, secret) {
 		return errors.New("hash value failure")
 	}
 
