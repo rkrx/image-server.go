@@ -34,6 +34,7 @@ type Profile struct {
 	Type             FileType
 	Width            int
 	Height           int
+	Mode             string
 	Sharpen          float32
 	Autocrop         autocrop
 }
@@ -65,11 +66,12 @@ func (profile Profile) GetDirectoryHash() string {
 		name = fmt.Sprintf("name=%s", profile.Name)
 	}
 	var backendHash = fmt.Sprintf("%x", md5.Sum([]byte(profile.Backend)))
-	return fmt.Sprintf("backend-hash=%s;%s;%d-%d;sh=%.3f;ac=%.3f,%.3f",
+	return fmt.Sprintf("backend-hash=%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f",
 		backendHash,
 		name,
 		profile.Width,
 		profile.Height,
+		profile.Mode,
 		profile.Sharpen,
 		profile.Autocrop.Tolerance,
 		profile.Autocrop.Border,
@@ -120,6 +122,9 @@ func (conf Config) SetProfileDefaults(profile Profile) Profile {
 	if profile.Type == "" {
 		profile.Type = Jpeg
 	}
+	if profile.Mode == "" {
+		profile.Mode = "contain"
+	}
 	if profile.ImageOriginalDir == "" {
 		profile.ImageOriginalDir = conf.ImageOriginalDir
 	}
@@ -162,6 +167,7 @@ func LoadConfig(filename string) (Config, error) {
 	}
 
 	conf.ImageCacheDir = coalesce(
+		conf.ImageCacheDir,
 		os.Getenv("GO_IMG_SRV_VAR_IMAGES_DIR"),
 		filepath.Join(os.Getenv("GO_IMG_SRV_VAR_CACHE_DIR"), "images"),
 		"var/cache/images",

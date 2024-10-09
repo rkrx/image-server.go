@@ -15,6 +15,13 @@ import (
 	"os"
 )
 
+type ImageResizeProjectionMode string
+
+const (
+	Contain ImageResizeProjectionMode = "contain"
+	Cover   ImageResizeProjectionMode = "cover"
+)
+
 func Width(img image.Image) int {
 	return img.Bounds().Dx()
 }
@@ -23,11 +30,24 @@ func Height(img image.Image) int {
 	return img.Bounds().Dy()
 }
 
-func ResizeProportional(img image.Image, width, height int) image.Image {
+func Resize(img image.Image, width, height int) image.Image {
+	imgW, imgH := Width(img), Height(img)
+	if imgW != width && imgH != height {
+		return resize.Resize(uint(imgW), uint(imgH), img, resize.Lanczos3)
+	}
+	return img
+}
+
+func ResizeProportional(img image.Image, width, height int, mode ImageResizeProjectionMode) image.Image {
 	imgW, imgH := Width(img), Height(img)
 	if imgW != width || imgH != height {
-		w, h := CalcProportionalResize(imgW, imgH, width, height)
-		return resize.Resize(uint(w), uint(h), img, resize.Lanczos3)
+		if mode == Contain {
+			w, h := CalcProportionalInnerMeasures(imgW, imgH, width, height)
+			return resize.Resize(uint(w), uint(h), img, resize.Lanczos3)
+		} else {
+			w, h := CalcProportionalOuterMeasures(imgW, imgH, width, height)
+			return resize.Resize(uint(w), uint(h), img, resize.Lanczos3)
+		}
 	}
 	return img
 }

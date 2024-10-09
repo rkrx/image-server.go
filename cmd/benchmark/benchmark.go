@@ -15,7 +15,7 @@ func doWork(img image.Image) {
 	w, h := 500, 500
 	newImg := img
 	newImg = imaging2.Autocrop(img, 15, 3)
-	newImg = imaging2.ResizeProportional(newImg, w, h)
+	newImg = imaging2.ResizeProportional(newImg, w, h, imaging2.Contain)
 	newImg = imaging2.Sharpen(newImg, 1)
 	newImg = imaging2.SetCanvas(newImg, w, h, imaging2.Center, imaging2.Center, color.White)
 }
