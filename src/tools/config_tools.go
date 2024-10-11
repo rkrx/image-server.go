@@ -28,9 +28,9 @@ const (
 
 type Profile struct {
 	Name             string
+	OriginalBackend  string
 	ImageOriginalDir string
 	ImageCacheDir    string
-	Backend          string
 	Type             FileType
 	Width            int
 	Height           int
@@ -60,15 +60,59 @@ func (profile *Profile) ApplyFileType(fileType string) error {
 	return nil
 }
 
+func (profile *Profile) ApplyFromProfile(otherProfile Profile) {
+	if otherProfile.Name != "" {
+		profile.Name = otherProfile.Name
+	}
+
+	if otherProfile.OriginalBackend != "" {
+		profile.OriginalBackend = otherProfile.OriginalBackend
+	}
+
+	if otherProfile.ImageOriginalDir != "" {
+		profile.ImageCacheDir = otherProfile.ImageOriginalDir
+	}
+
+	if otherProfile.ImageCacheDir != "" {
+		profile.ImageCacheDir = otherProfile.ImageCacheDir
+	}
+
+	if otherProfile.Type != "" { // Assuming FileType is a string-like type
+		profile.Type = otherProfile.Type
+	}
+
+	if otherProfile.Width != 0 {
+		profile.Width = otherProfile.Width
+	}
+
+	if otherProfile.Height != 0 {
+		profile.Height = otherProfile.Height
+	}
+
+	if otherProfile.Mode != "" {
+		profile.Mode = otherProfile.Mode
+	}
+
+	if otherProfile.Sharpen != 0 {
+		profile.Sharpen = otherProfile.Sharpen
+	}
+
+	// Assuming `autocrop` is a struct or another type that should be copied as is
+	if otherProfile.Autocrop != (autocrop{}) {
+		profile.Autocrop = otherProfile.Autocrop
+	}
+}
+
 func (profile Profile) GetDirectoryHash() string {
 	var name = "dynamic"
 	if profile.Name != "" {
 		name = fmt.Sprintf("name=%s", profile.Name)
 	}
-	var backendHash = fmt.Sprintf("%x", md5.Sum([]byte(profile.Backend)))
-	return fmt.Sprintf("backend-hash=%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f",
+	var backendHash = fmt.Sprintf("%x", md5.Sum([]byte(profile.OriginalBackend)))
+	return fmt.Sprintf("backend-hash=%s;%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f",
 		backendHash,
 		name,
+		profile.Name,
 		profile.Width,
 		profile.Height,
 		profile.Mode,
@@ -103,6 +147,7 @@ type Config struct {
 	HashCacheFilenames                 bool         `toml:"hashCacheFilenames"`
 	ImageOriginalDir                   string       `toml:"imageOriginalDir"`
 	ImageCacheDir                      string       `toml:"imageCacheDir"`
+	CacheMaxAgeInSeconds               int32        `toml:"cacheMaxAgeInSeconds"`
 	Server                             ServerType   `toml:"server"`
 	Profiles                           []Profile    `toml:"profile"`
 	JpegDefaults                       JpegDefaults `toml:"jpegDefaults"`
@@ -112,7 +157,8 @@ type Config struct {
 func (conf Config) GetProfile(name string) (Profile, error) {
 	for _, profile := range conf.Profiles {
 		if profile.Name == name {
-			return conf.SetProfileDefaults(profile), nil
+			profile = conf.SetProfileDefaults(profile)
+			return profile, nil
 		}
 	}
 	return conf.GetDefaultProfile(), errors.New("profile not found")
@@ -124,6 +170,9 @@ func (conf Config) SetProfileDefaults(profile Profile) Profile {
 	}
 	if profile.Mode == "" {
 		profile.Mode = "contain"
+	}
+	if profile.OriginalBackend == "" {
+		profile.OriginalBackend = conf.Server.OriginalBackend
 	}
 	if profile.ImageOriginalDir == "" {
 		profile.ImageOriginalDir = conf.ImageOriginalDir
@@ -174,7 +223,7 @@ func LoadConfig(filename string) (Config, error) {
 	)
 
 	if !FileExists(conf.ImageCacheDir) {
-		if err := os.MkdirAll(conf.ImageOriginalDir, 0777); err != nil {
+		if err := os.MkdirAll(conf.ImageCacheDir, 0777); err != nil {
 			log.Fatal(err)
 		}
 	}

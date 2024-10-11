@@ -22,20 +22,11 @@ type Backend struct {
 func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if backend.Config.DisableCaching {
 		w.Header().Add("Cache-Control", "no-cache")
+	} else if backend.Config.CacheMaxAgeInSeconds > 0 {
+		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", backend.Config.CacheMaxAgeInSeconds))
 	}
 
 	profile := backend.Config.GetDefaultProfile()
-
-	//region Check if the url has a profile key
-	if r.URL.Query().Has("profile") {
-		profileName := r.URL.Query().Get("profile")
-		var err error
-		if profile, err = backend.Config.GetProfile(profileName); err != nil {
-			w.WriteHeader(404)
-			return
-		}
-	}
-	//endregion
 
 	//region Check if the client ip found in DisableHashCheckingFromIPv4Sources
 	getRemoteIP := func(header http.Header, remoteAddrHeader string) string {
@@ -65,7 +56,7 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//endregion
 
 	//region Apply URL-Parameters to the current profile
-	if err := applyUrlParameters(&profile, r.RequestURI, r.URL.Query(), backend.Config.Secret, backend.Config.DisableHashChecking); err != nil {
+	if err := applyUrlParameters(&profile, backend.Config, r.RequestURI, r.URL.Query(), backend.Config.Secret, backend.Config.DisableHashChecking); err != nil {
 		w.WriteHeader(403)
 		return
 	}
@@ -100,7 +91,10 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//region Generate the cache image
 	if !tools.FileExists(cachePath) {
 		log.Printf("File not in cache: %s", cachePath)
-		statusCode, err := backend.getFinalImageBytes(r.URL.Path, origFilename, cachePath, profile, func(img image.Image) image.Image {
+
+		requestPath := tools.ConcatPathParts(profile.OriginalBackend, r.URL.Path)
+
+		statusCode, err := backend.getFinalImageBytes(requestPath, origFilename, cachePath, profile, func(img image.Image) image.Image {
 			if profile.Width < 1 && profile.Height < 1 {
 				profile.Width = img.Bounds().Dx()
 				profile.Height = img.Bounds().Dy()

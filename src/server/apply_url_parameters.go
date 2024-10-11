@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Values, secret string, disableHashChecking bool) error {
+func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri string, values url.Values, secret string, disableHashChecking bool) error {
 	var tryApplyUrlParameter = func(key string, fn func(value string) bool) func() bool {
 		return func() bool {
 			if values.Has(key) {
@@ -14,6 +14,13 @@ func applyUrlParameters(profile *tools.Profile, requestUri string, values url.Va
 				return fn(value)
 			}
 			return false
+		}
+	}
+
+	if values.Has("profile") {
+		namedProfile, err := config.GetProfile(values.Get("profile"))
+		if err == nil {
+			profile.ApplyFromProfile(namedProfile)
 		}
 	}
 

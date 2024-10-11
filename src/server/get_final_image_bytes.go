@@ -24,12 +24,12 @@ func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath strin
 		}
 	}
 
-	cachedOriginalPath := filepath.Join(profile.ImageOriginalDir, filename)
+	cachedOriginalPath := filepath.Join(profile.ImageCacheDir, filename)
 
 	if !tools.FileExists(cachedOriginalPath) {
 		imageContent, statusCode, err := backend.FetchImage(requestPath)
 		if err != nil {
-			log.Printf("Error: %s (ResponseCode = %d; RequestPath = %s; Backend = %s)", err, statusCode, requestPath, profile.Backend)
+			log.Printf("Error: %s (ResponseCode = %d; RequestPath = %s; Backend = %s)", err, statusCode, requestPath, profile.OriginalBackend)
 			return statusCode, err
 		}
 

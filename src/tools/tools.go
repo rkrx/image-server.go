@@ -2,9 +2,11 @@ package tools
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 func ToIntOr(str string, defaultValue int) int {
@@ -44,4 +46,10 @@ func RegexSplit(str, splitPattern string, n int) []string {
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !errors.Is(err, os.ErrNotExist)
+}
+
+func ConcatPathParts(a string, b string) string {
+	a = strings.TrimRight(a, "/")
+	b = strings.TrimLeft(b, "/")
+	return fmt.Sprintf("%s/%s", a, b)
 }
