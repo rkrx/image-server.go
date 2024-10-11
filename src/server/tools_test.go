@@ -9,7 +9,7 @@ import (
 
 func TestParseRequestPath(t *testing.T) {
 	input := "/ac15,3/rp500,auto/sh0.6/hs07AF3A88/camera.jpeg/webp"
-	filename, commands, err := ParseRequestPath(input)
+	filename, commands, err := parseRequestPath(input)
 	fmt.Printf("Filename %s", filename)
 	if err != nil {
 		log.Println(err)

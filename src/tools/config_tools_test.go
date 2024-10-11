@@ -31,11 +31,13 @@ func TestConfig_GetProfile(t *testing.T) {
 
 	expectedProfile := Profile{
 		Name:             "250px",
+		OriginalBackend:  "https://127.0.0.1/original",
 		ImageOriginalDir: "originals",
 		ImageCacheDir:    "images",
 		Type:             Jpeg,
 		Width:            250,
 		Height:           250,
+		Mode:             "contain",
 		Sharpen:          0.6,
 		Autocrop:         autocrop{Tolerance: 15, Border: 3},
 	}
@@ -45,14 +47,15 @@ func TestConfig_GetProfile(t *testing.T) {
 
 func TestProfile_GetDirectoryHash(t *testing.T) {
 	profile := Profile{
-		Name:     "test",
-		Backend:  "backend",
-		Width:    250,
-		Height:   250,
-		Sharpen:  .6,
-		Autocrop: autocrop{Tolerance: 15, Border: 3},
+		Name:            "test",
+		OriginalBackend: "https://127.0.0.1/original",
+		Width:           250,
+		Height:          250,
+		Mode:            "contain",
+		Sharpen:         .6,
+		Autocrop:        autocrop{Tolerance: 15, Border: 3},
 	}
-	assert.Equal(t, "backend-hash=b43fdd98b1fd705ae4c3a10cf25aad8a;name=test;250-250;sh=0.600;ac=15.000,3.000", profile.GetDirectoryHash())
+	assert.Equal(t, "backend-hash=a73b283ad646cf547c4cbbaa334a342d;name=test;250-250;m=contain;sh=0.600;ac=15.000,3.000", profile.GetDirectoryHash())
 }
 
 func TestProfile_ApplyFileType(t *testing.T) {

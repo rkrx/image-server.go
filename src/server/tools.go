@@ -39,7 +39,7 @@ func (cmd *ResizeProportional) apply(img image.Image) image.Image {
 }
 
 // Example: /ac15,3/rp500-auto/sh0.6/hsABCDEFG/camera.jpeg/webp
-func ParseRequestPath(path string) (filename string, commands []ImageModificationCommand, err error) {
+func parseRequestPath(path string) (filename string, commands []ImageModificationCommand, err error) {
 	path = strings.TrimLeft(path, "/")
 	if success, groups := tools.RegexMatch(path, "^(.*?)/([\\w-]+\\.\\w+)/(\\w+)$"); success {
 		//filename

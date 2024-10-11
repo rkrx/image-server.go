@@ -109,10 +109,9 @@ func (profile Profile) GetDirectoryHash() string {
 		name = fmt.Sprintf("name=%s", profile.Name)
 	}
 	var backendHash = fmt.Sprintf("%x", md5.Sum([]byte(profile.OriginalBackend)))
-	return fmt.Sprintf("backend-hash=%s;%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f",
+	return fmt.Sprintf("backend-hash=%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f",
 		backendHash,
 		name,
-		profile.Name,
 		profile.Width,
 		profile.Height,
 		profile.Mode,

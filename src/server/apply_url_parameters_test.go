@@ -19,7 +19,7 @@ func Test_applyUrlParameters(t *testing.T) {
 	requestUri = "/image.jpg?width=400&height=500&autocrop=15,3&sharpen=.6&type=png"
 	parts, err = url.ParseRequestURI(requestUri)
 	assert.Nil(t, err)
-	err = applyUrlParameters(&profile, requestUri, parts.Query(), secret, true)
+	err = applyUrlParameters(&profile, tools.Config{}, requestUri, parts.Query(), secret, true)
 	assert.Nil(t, err)
 	assert.Equal(t, "", profile.Name)
 	assert.Equal(t, 400, profile.Width)
@@ -34,7 +34,7 @@ func Test_applyUrlParameters(t *testing.T) {
 	requestUri = "/image.jpg?width=400&height=500&autocrop=15,3&sharpen=.6&type=png&hash=9acd605b"
 	parts, err = url.ParseRequestURI(requestUri)
 	assert.Nil(t, err)
-	err = applyUrlParameters(&profile, requestUri, parts.Query(), secret, false)
+	err = applyUrlParameters(&profile, tools.Config{}, requestUri, parts.Query(), secret, false)
 	assert.Nil(t, err)
 	assert.Equal(t, "", profile.Name)
 	assert.Equal(t, 400, profile.Width)
