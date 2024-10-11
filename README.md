@@ -24,13 +24,14 @@ docker run -d --restart unless-stopped --name go-image-server -v /var/cache/imag
 
 ## Parameters
 
-| Parameter-type     | Syntax          | Possible value pattern                        | Description                                                                                 |
-|--------------------|-----------------|-----------------------------------------------|---------------------------------------------------------------------------------------------|
-| Width constraints  | `width` or `w`  | Positive integer                              | Set the width of the resulting image. (`Optional`)                                          |
-| Height constraints | `height` or `h` | Positive integer                              | Set the height of the resulting image. (`Optional`)                                         |
-| Mode               | `mode`          | `proportional`, `contain`, `cover`, `stretch` | The operational mode when the image is resized.                                             |
-| Autocrop           | `autocrop`      | `treshold`,`border`                           | The operational mode when the image is resized.                                             |
-| API-Version        | `v`             | `0.1..∞`                                      | The API-Version, which is currently 1.0 for this project.                                   |
+| Parameter-type     | Syntax          | Possible value pattern                        | Description                                                            |
+|--------------------|-----------------|-----------------------------------------------|------------------------------------------------------------------------|
+| Width constraints  | `width` or `w`  | Positive integer                              | Set the width of the resulting image. (_Optional_)                     |
+| Height constraints | `height` or `h` | Positive integer                              | Set the height of the resulting image. (_Optional_)                    |
+| Profile            | `profile`       | <`name of the profile`>                       | Profiles can be configured separately in the config file. (_Optional_) |
+| Mode               | `mode`          | `proportional`, `contain`, `cover`, `stretch` | The operational mode when the image is resized.                        |
+| Autocrop           | `autocrop`      | `treshold`,`border`                           | The settings for autocrop.                                             |
+| API-Version        | `v`             | `0.1..∞`                                      | The API-Version, which is currently 1.0 for this project.              |
 
 ```http
 GET http://127.0.0.1:8080/some-image-name.jpg?width=600&height=600&autocrop=15,3&sharpen=.6&output=webp&hash=58e7e17786
