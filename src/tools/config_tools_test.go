@@ -1,18 +1,22 @@
 package tools
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadConfig(t *testing.T) {
-	conf, err := LoadConfig("test_assets/config.toml")
-	assert.Nil(t, err)
+	conf, cacheDir := loadConfigForTest(t)
 	assert.True(t, conf.LoggingEnabled)
 	assert.True(t, conf.HashCacheFilenames)
 	assert.Equal(t, "md5", conf.HashAlgorithm)
 	assert.Equal(t, 8, conf.HashLength)
+	assert.Equal(t, filepath.Join(cacheDir, "originals"), conf.ImageOriginalDir)
+	assert.Equal(t, filepath.Join(cacheDir, "images"), conf.ImageCacheDir)
+	assert.True(t, FileExists(conf.ImageOriginalDir))
+	assert.True(t, FileExists(conf.ImageCacheDir))
 
 	assert.Equal(t, 85, conf.JpegDefaults.Quality)
 	assert.Equal(t, 80, conf.WebpDefaults.Quality)
@@ -26,16 +30,15 @@ func TestLoadConfig(t *testing.T) {
 }
 
 func TestConfig_GetProfile(t *testing.T) {
-	conf, err := LoadConfig("test_assets/config.toml")
-	assert.Nil(t, err)
+	conf, cacheDir := loadConfigForTest(t)
 	profile, err := conf.GetProfile("250px")
 	assert.Nil(t, err)
 
 	expectedProfile := Profile{
 		Name:             "250px",
 		OriginalBackend:  "https://127.0.0.1/original",
-		ImageOriginalDir: "originals",
-		ImageCacheDir:    "images",
+		ImageOriginalDir: filepath.Join(cacheDir, "originals"),
+		ImageCacheDir:    filepath.Join(cacheDir, "images"),
 		Type:             Jpeg,
 		Width:            250,
 		Height:           250,
@@ -45,6 +48,18 @@ func TestConfig_GetProfile(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedProfile, profile)
+}
+
+func loadConfigForTest(t *testing.T) (Config, string) {
+	t.Helper()
+	cacheDir := t.TempDir()
+	t.Setenv("GO_IMG_SRV_VAR_CACHE_DIR", cacheDir)
+	t.Setenv("GO_IMG_SRV_VAR_ORIGINALS_DIR", "")
+	t.Setenv("GO_IMG_SRV_VAR_IMAGES_DIR", "")
+
+	conf, err := LoadConfig("test_assets/config.toml")
+	assert.Nil(t, err)
+	return conf, cacheDir
 }
 
 func TestProfile_GetDirectoryHash(t *testing.T) {
