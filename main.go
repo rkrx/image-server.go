@@ -29,7 +29,7 @@ func main() {
 	log.Printf("Original backend: %s", conf.Server.OriginalBackend)
 	log.Printf("Logging enabled: %t", conf.LoggingEnabled)
 
-	backend := server.Backend{Config: conf}
+	backend := server.NewBackend(conf)
 	r := mux.NewRouter()
 	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)

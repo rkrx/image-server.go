@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/chai2010/webp"
@@ -14,7 +15,7 @@ import (
 	"path/filepath"
 )
 
-func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath string, profile tools.Profile, fn func(image.Image) image.Image) (int, error) {
+func (backend Backend) getFinalImageBytes(ctx context.Context, requestPath, filename, cachePath string, profile tools.Profile, fn func(image.Image) image.Image) (int, error) {
 	log.Printf("Request: %s", requestPath)
 
 	dir := filepath.Dir(cachePath)
@@ -27,7 +28,7 @@ func (backend Backend) getFinalImageBytes(requestPath, filename, cachePath strin
 	cachedOriginalPath := filepath.Join(profile.ImageCacheDir, filename)
 
 	if !tools.FileExists(cachedOriginalPath) {
-		imageContent, statusCode, err := backend.FetchImage(requestPath)
+		imageContent, statusCode, err := backend.FetchImage(ctx, requestPath)
 		if err != nil {
 			log.Printf("Error: %s (ResponseCode = %d; RequestPath = %s; Backend = %s)", err, statusCode, requestPath, profile.OriginalBackend)
 			return statusCode, err

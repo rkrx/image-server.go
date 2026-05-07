@@ -77,3 +77,12 @@ hashLength = 16
 ```
 
 `hashAlgorithm` defaults to `md5` for compatibility. New installations should use `sha256`, which is implemented as HMAC-SHA256 over the request URI without the `hash` parameter. `hashLength` defaults to `8` and truncates the hex hash to keep URLs short.
+
+### Origin fetch limits
+
+```toml
+originFetchTimeoutInSeconds = 15
+originMaxImageBytes = 52428800
+```
+
+`originFetchTimeoutInSeconds` limits how long the server waits for an original image response. `originMaxImageBytes` limits how many bytes are read from the origin before image decoding starts.

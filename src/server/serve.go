@@ -13,10 +13,35 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type Backend struct {
-	Config tools.Config
+	Config     tools.Config
+	HTTPClient *http.Client
+}
+
+func NewBackend(config tools.Config) Backend {
+	return Backend{
+		Config:     config,
+		HTTPClient: newOriginHTTPClient(config),
+	}
+}
+
+func newOriginHTTPClient(config tools.Config) *http.Client {
+	timeout := config.OriginFetchTimeoutInSeconds
+	if timeout < 1 {
+		timeout = 15
+	}
+
+	return &http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 20,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
 }
 
 func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +119,7 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		requestPath := tools.ConcatPathParts(profile.OriginalBackend, r.URL.Path)
 
-		statusCode, err := backend.getFinalImageBytes(requestPath, origFilename, cachePath, profile, func(img image.Image) image.Image {
+		statusCode, err := backend.getFinalImageBytes(r.Context(), requestPath, origFilename, cachePath, profile, func(img image.Image) image.Image {
 			if profile.Width < 1 && profile.Height < 1 {
 				profile.Width = img.Bounds().Dx()
 				profile.Height = img.Bounds().Dy()

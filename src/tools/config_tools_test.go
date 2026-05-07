@@ -13,6 +13,8 @@ func TestLoadConfig(t *testing.T) {
 	assert.True(t, conf.HashCacheFilenames)
 	assert.Equal(t, "md5", conf.HashAlgorithm)
 	assert.Equal(t, 8, conf.HashLength)
+	assert.Equal(t, 15, conf.OriginFetchTimeoutInSeconds)
+	assert.Equal(t, int64(50<<20), conf.OriginMaxImageBytes)
 	assert.Equal(t, filepath.Join(cacheDir, "originals"), conf.ImageOriginalDir)
 	assert.Equal(t, filepath.Join(cacheDir, "images"), conf.ImageCacheDir)
 	assert.True(t, FileExists(conf.ImageOriginalDir))

@@ -143,6 +143,8 @@ type Config struct {
 	Secret                             string       `toml:"secret"`
 	HashAlgorithm                      string       `toml:"hashAlgorithm"`
 	HashLength                         int          `toml:"hashLength"`
+	OriginFetchTimeoutInSeconds        int          `toml:"originFetchTimeoutInSeconds"`
+	OriginMaxImageBytes                int64        `toml:"originMaxImageBytes"`
 	DisableHashChecking                bool         `toml:"disableHashChecking"`
 	DisableHashCheckingFromIPv4Sources []string     `toml:"disableHashCheckingFromIPv4Sources"`
 	DisableCaching                     bool         `toml:"disableCaching"`
@@ -206,6 +208,8 @@ func LoadConfig(filename string) (Config, error) {
 	conf.Secret = ""
 	conf.HashAlgorithm = "md5"
 	conf.HashLength = 8
+	conf.OriginFetchTimeoutInSeconds = 15
+	conf.OriginMaxImageBytes = 50 << 20
 
 	conf.ImageOriginalDir = coalesce(
 		os.Getenv("GO_IMG_SRV_VAR_ORIGINALS_DIR"),
