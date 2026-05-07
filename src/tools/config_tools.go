@@ -4,11 +4,12 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"github.com/BurntSushi/toml"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 type autocrop struct {
@@ -70,7 +71,7 @@ func (profile *Profile) ApplyFromProfile(otherProfile Profile) {
 	}
 
 	if otherProfile.ImageOriginalDir != "" {
-		profile.ImageCacheDir = otherProfile.ImageOriginalDir
+		profile.ImageOriginalDir = otherProfile.ImageOriginalDir
 	}
 
 	if otherProfile.ImageCacheDir != "" {
