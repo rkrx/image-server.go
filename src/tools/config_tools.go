@@ -141,6 +141,8 @@ type WebpDefaults struct {
 type Config struct {
 	LoggingEnabled                     bool         `toml:"enableLogging"`
 	Secret                             string       `toml:"secret"`
+	HashAlgorithm                      string       `toml:"hashAlgorithm"`
+	HashLength                         int          `toml:"hashLength"`
 	DisableHashChecking                bool         `toml:"disableHashChecking"`
 	DisableHashCheckingFromIPv4Sources []string     `toml:"disableHashCheckingFromIPv4Sources"`
 	DisableCaching                     bool         `toml:"disableCaching"`
@@ -202,6 +204,8 @@ func LoadConfig(filename string) (Config, error) {
 	conf.LoggingEnabled = true
 	conf.HashCacheFilenames = false
 	conf.Secret = ""
+	conf.HashAlgorithm = "md5"
+	conf.HashLength = 8
 
 	conf.ImageOriginalDir = coalesce(
 		os.Getenv("GO_IMG_SRV_VAR_ORIGINALS_DIR"),

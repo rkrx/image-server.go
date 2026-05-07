@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri string, values url.Values, secret string, disableHashChecking bool) error {
+func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri string, values url.Values, disableHashChecking bool) error {
 	var tryApplyUrlParameter = func(key string, fn func(value string) bool) func() bool {
 		return func() bool {
 			if values.Has(key) {
@@ -66,7 +66,7 @@ func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri 
 		}
 	}
 
-	if parameterFound && !disableHashChecking && !extractHashFromRequestUri(requestUri, values, secret) {
+	if parameterFound && !disableHashChecking && !extractHashFromRequestUri(requestUri, values, config) {
 		return errors.New("hash value failure")
 	}
 

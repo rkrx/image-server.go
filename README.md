@@ -46,7 +46,7 @@ Let's say your secret is `DontUseThisSecret123`, then you concatenate the reques
 
 `/some-image-name.jpg?width=600&height=600&autocrop=15,3&sharpen=.6&output=webp` + `DontUseThisSecret123`
 
-Then you generate the `MD5` hash of this concatenated string and take the first eight characters of the resulting hex string. This is your hash value.
+By default, the server generates an `MD5` hash of this concatenated string and takes the first eight characters of the resulting hex string. This keeps existing URLs compatible.
 
 To generate the final request URI, you append the hash value as a query parameter:
 
@@ -67,3 +67,13 @@ GET http://127.0.0.1:8080/some-image-name.jpg?profile=500px
 ```
 
 The original images are pulled from any source. This works as long as the images from the original source are accessible by path only and do not require any additional query parameters.
+
+### Hash configuration
+
+```toml
+secret = "DontUseThisSecret123"
+hashAlgorithm = "sha256"
+hashLength = 16
+```
+
+`hashAlgorithm` defaults to `md5` for compatibility. New installations should use `sha256`, which is implemented as HMAC-SHA256 over the request URI without the `hash` parameter. `hashLength` defaults to `8` and truncates the hex hash to keep URLs short.

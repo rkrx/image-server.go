@@ -56,7 +56,7 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//endregion
 
 	//region Apply URL-Parameters to the current profile
-	if err := applyUrlParameters(&profile, backend.Config, r.RequestURI, r.URL.Query(), backend.Config.Secret, backend.Config.DisableHashChecking); err != nil {
+	if err := applyUrlParameters(&profile, backend.Config, r.RequestURI, r.URL.Query(), backend.Config.DisableHashChecking); err != nil {
 		w.WriteHeader(403)
 		return
 	}

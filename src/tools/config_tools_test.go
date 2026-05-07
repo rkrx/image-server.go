@@ -11,6 +11,8 @@ func TestLoadConfig(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, conf.LoggingEnabled)
 	assert.True(t, conf.HashCacheFilenames)
+	assert.Equal(t, "md5", conf.HashAlgorithm)
+	assert.Equal(t, 8, conf.HashLength)
 
 	assert.Equal(t, 85, conf.JpegDefaults.Quality)
 	assert.Equal(t, 80, conf.WebpDefaults.Quality)
