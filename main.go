@@ -2,14 +2,13 @@ package main
 
 import (
 	"github.com/gorilla/mux"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"image-server/src/server"
 	"image-server/src/tools"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func main() {
@@ -37,11 +36,25 @@ func main() {
 	r.PathPrefix("/").Handler(http.StripPrefix("/", backend))
 	http.Handle("/", r)
 
-	h2s := &http2.Server{}
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 
 	srv := &http.Server{
-		Addr:    conf.Server.ListenAddr,
-		Handler: h2c.NewHandler(r, h2s),
+		Addr:              conf.Server.ListenAddr,
+		Handler:           r,
+		ReadHeaderTimeout: time.Duration(conf.Server.ReadHeaderTimeoutInSeconds) * time.Second,
+		ReadTimeout:       time.Duration(conf.Server.ReadTimeoutInSeconds) * time.Second,
+		WriteTimeout:      time.Duration(conf.Server.WriteTimeoutInSeconds) * time.Second,
+		IdleTimeout:       time.Duration(conf.Server.IdleTimeoutInSeconds) * time.Second,
+		MaxHeaderBytes:    conf.Server.MaxHeaderBytes,
+		Protocols:         protocols,
+		HTTP2: &http.HTTP2Config{
+			MaxConcurrentStreams: conf.Server.MaxConcurrentHTTP2Streams,
+			SendPingTimeout:      time.Duration(conf.Server.ReadHeaderTimeoutInSeconds) * time.Second,
+			PingTimeout:          time.Duration(conf.Server.ReadHeaderTimeoutInSeconds) * time.Second,
+			WriteByteTimeout:     time.Duration(conf.Server.WriteTimeoutInSeconds) * time.Second,
+		},
 	}
 
 	err = srv.ListenAndServe()

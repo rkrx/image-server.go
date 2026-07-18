@@ -11,7 +11,6 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	_ "image/png"
 	"log"
 	"os"
 )
@@ -79,9 +78,9 @@ func SaveToJpegFile(img image.Image, filepath string, quality int) error {
 	imBytes := buf.Bytes()
 	noExifBytes, err := exifremove.Remove(imBytes)
 	if err == nil {
-		return os.WriteFile(filepath, noExifBytes, 0666)
+		return os.WriteFile(filepath, noExifBytes, 0600)
 	}
-	return os.WriteFile(filepath, imBytes, 0666)
+	return os.WriteFile(filepath, imBytes, 0600)
 }
 
 func SaveToPngFile(img image.Image, filepath string) error {
@@ -93,9 +92,9 @@ func SaveToPngFile(img image.Image, filepath string) error {
 	imBytes := buf.Bytes()
 	noExifBytes, err := exifremove.Remove(imBytes)
 	if err == nil {
-		return os.WriteFile(filepath, noExifBytes, 0666)
+		return os.WriteFile(filepath, noExifBytes, 0600)
 	}
-	return os.WriteFile(filepath, imBytes, 0666)
+	return os.WriteFile(filepath, imBytes, 0600)
 }
 
 func SaveToGifFile(img image.Image, filepath string, options *gif.Options) error {
@@ -104,7 +103,7 @@ func SaveToGifFile(img image.Image, filepath string, options *gif.Options) error
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath, buf.Bytes(), 0666)
+	return os.WriteFile(filepath, buf.Bytes(), 0600)
 }
 
 func SaveToAvifFile(img image.Image, filepath string, quality, alphaQuality, speed int) error {
@@ -117,7 +116,7 @@ func SaveToAvifFile(img image.Image, filepath string, quality, alphaQuality, spe
 	if err := avif.Encode(&buf, img, options); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath, buf.Bytes(), 0666)
+	return os.WriteFile(filepath, buf.Bytes(), 0600)
 }
 
 func Img2WebpBuffer(buf *bytes.Buffer, img image.Image, quality float32) error {

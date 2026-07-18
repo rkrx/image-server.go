@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"image-server/src/imaging"
@@ -71,7 +70,7 @@ func parseCommands(commandStr string) ([]ImageModificationCommand, error) {
 			hash := groups[1]
 			log.Printf("hash(string = %s)", hash)
 		} else {
-			return []ImageModificationCommand{}, errors.New(fmt.Sprintf("unrecognized command pattern: %s", part))
+			return []ImageModificationCommand{}, fmt.Errorf("unrecognized command pattern: %s", part)
 		}
 	}
 	return commands, nil

@@ -37,4 +37,7 @@ func TestSaveToAvifFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "avif", format)
 	assert.Equal(t, img.Bounds(), decoded.Bounds())
+	fileInfo, err := os.Stat(filename)
+	assert.NoError(t, err)
+	assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm())
 }

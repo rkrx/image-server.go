@@ -1,0 +1,16 @@
+.git
+.gitignore
+.idea
+.vscode
+.env
+.env.*
+AGENTS.md
+README.md
+LICENSE
+config.toml
+config.sample.toml
+cmd
+doc
+var
+**/*_test.go
+src/tools/test_assets

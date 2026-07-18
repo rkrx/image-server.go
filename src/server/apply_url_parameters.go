@@ -2,73 +2,88 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"image-server/src/tools"
+	"math"
 	"net/url"
+	"strconv"
 )
 
-func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri string, values url.Values, disableHashChecking bool) error {
-	var tryApplyUrlParameter = func(key string, fn func(value string) bool) func() bool {
-		return func() bool {
-			if values.Has(key) {
-				value := values.Get(key)
-				return fn(value)
-			}
-			return false
-		}
-	}
+var errInvalidRequestHash = errors.New("invalid request hash")
 
+func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri string, values url.Values, disableHashChecking bool) error {
 	if values.Has("profile") {
 		namedProfile, err := config.GetProfile(values.Get("profile"))
-		if err == nil {
-			profile.ApplyFromProfile(namedProfile)
+		if err != nil {
+			return errors.New("unknown image profile")
 		}
-	}
-
-	params := []func() bool{
-		tryApplyUrlParameter("width", func(value string) bool {
-			profile.Width = tools.ToIntOr(value, profile.Width)
-			return true
-		}),
-		tryApplyUrlParameter("height", func(value string) bool {
-			profile.Height = tools.ToIntOr(value, profile.Height)
-			return true
-		}),
-		tryApplyUrlParameter("mode", func(value string) bool {
-			if value == "proportional" || value == "contain" || value == "cover" || value == "stretch" {
-				// fit: The image is proportionally scaled to fit within the specified width and height, without enlarging the canvas.
-				// contain: The image is scaled to fully fit within the specified width and height of the canvas.
-				// cover: The image is scaled to fill the entire specified width and height of the canvas, with portions of the image possibly being cropped.
-				// stretch: The image is scaled to completely fill the specified width and height of the canvas, disregarding the original aspect ratio.
-				profile.Mode = value
-			}
-			return true
-		}),
-		tryApplyUrlParameter("sharpen", func(value string) bool {
-			profile.Sharpen = tools.ToFloat32Or(value, profile.Sharpen)
-			return true
-		}),
-		tryApplyUrlParameter("autocrop", func(value string) bool {
-			if success, groups := tools.RegexMatch(value, "^(\\d+)(?:,(\\d+))?$"); success {
-				tolerance := tools.ToFloat32Or(groups[1], -1)
-				border := tools.ToFloat32Or(groups[2], 0)
-				profile.Autocrop.Apply = true
-				profile.Autocrop.Tolerance = tolerance
-				profile.Autocrop.Border = border
-			}
-			return true
-		}),
+		profile.ApplyFromProfile(namedProfile)
 	}
 
 	parameterFound := false
-	for _, fn := range params {
-		if fn() {
-			parameterFound = true
+	if values.Has("width") {
+		width, err := parseIntegerParameter("width", values.Get("width"))
+		if err != nil {
+			return err
 		}
+		profile.Width = width
+		parameterFound = true
+	}
+	if values.Has("height") {
+		height, err := parseIntegerParameter("height", values.Get("height"))
+		if err != nil {
+			return err
+		}
+		profile.Height = height
+		parameterFound = true
+	}
+	if values.Has("mode") {
+		mode := values.Get("mode")
+		if mode != "proportional" && mode != "contain" && mode != "cover" && mode != "stretch" {
+			return errors.New("invalid resize mode")
+		}
+		profile.Mode = mode
+		parameterFound = true
+	}
+	if values.Has("sharpen") {
+		sharpen, err := strconv.ParseFloat(values.Get("sharpen"), 32)
+		if err != nil || math.IsNaN(sharpen) || math.IsInf(sharpen, 0) || sharpen < 0 || sharpen > 10 {
+			return errors.New("sharpen must be between 0 and 10")
+		}
+		profile.Sharpen = float32(sharpen)
+		parameterFound = true
+	}
+	if values.Has("autocrop") {
+		success, groups := tools.RegexMatch(values.Get("autocrop"), "^(\\d+)(?:,(\\d+))?$")
+		if !success {
+			return errors.New("invalid autocrop parameter")
+		}
+		tolerance := tools.ToFloat32Or(groups[1], -1)
+		border := tools.ToFloat32Or(groups[2], 0)
+		if tolerance < 0 || tolerance > 100 || border < 0 || border > 25 {
+			return errors.New("autocrop tolerance must be between 0 and 100 and border between 0 and 25")
+		}
+		profile.Autocrop.Apply = true
+		profile.Autocrop.Tolerance = tolerance
+		profile.Autocrop.Border = border
+		parameterFound = true
+	}
+
+	if err := config.ValidateRequestedOutputDimensions(profile.Width, profile.Height); err != nil {
+		return err
 	}
 
 	if parameterFound && !disableHashChecking && !extractHashFromRequestUri(requestUri, values, config) {
-		return errors.New("hash value failure")
+		return errInvalidRequestHash
 	}
 
 	return nil
+}
+
+func parseIntegerParameter(name, value string) (int, error) {
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be an integer", name)
+	}
+	return parsed, nil
 }

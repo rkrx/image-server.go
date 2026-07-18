@@ -1,4 +1,4 @@
-package benchmark
+package main
 
 import (
 	"fmt"
@@ -11,13 +11,14 @@ import (
 	"time"
 )
 
-func doWork(img image.Image) {
+func doWork(img image.Image) image.Image {
 	w, h := 500, 500
 	newImg := img
 	newImg = imaging2.Autocrop(img, 15, 3)
 	newImg = imaging2.ResizeProportional(newImg, w, h, imaging2.Contain)
 	newImg = imaging2.Sharpen(newImg, 1)
 	newImg = imaging2.SetCanvas(newImg, w, h, imaging2.Center, imaging2.Center, color.White)
+	return newImg
 }
 
 func worker(caption string, c chan int) {
@@ -31,13 +32,13 @@ func worker(caption string, c chan int) {
 	for {
 		index := <-c
 		start := time.Now()
-		doWork(img)
+		_ = doWork(img)
 		elapsed := time.Since(start)
 		fmt.Printf("%s %d took %s\n", caption, index, elapsed)
 	}
 }
 
-func main2() {
+func main() {
 	c := make(chan int)
 
 	start := time.Now()

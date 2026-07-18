@@ -1,113 +1,138 @@
 # Copy this file to config.toml and replace all example values before use.
 
 # Write application logs to stdout. Defaults to true.
-enableLogging = true
+enableLogging = true # optional, default: true
 
-# Required secret used to sign dynamic transformation parameters.
-# Use a long, randomly generated value in production.
-secret = "replace-with-a-long-random-secret"
+# Required secret used to sign dynamic transformation parameters. Prefer
+# setting GO_IMG_SRV_SECRET in the runtime environment. A value configured here
+# remains supported for backwards compatibility, but should not be committed or
+# copied into a container image.
+# secret = "replace-with-a-long-random-secret" # optional, default: GO_IMG_SRV_SECRET; required overall
 
 # Supported values: "md5" (legacy), "sha256", and "hmac-sha256".
 # Both SHA-256 values use HMAC-SHA256. New installations should use sha256.
-hashAlgorithm = "sha256"
+hashAlgorithm = "sha256" # optional, default: "md5"
 
 # Number of hexadecimal characters retained from the generated request hash.
-hashLength = 16
+# 32 hexadecimal characters provide a 128-bit truncated HMAC.
+hashLength = 32 # optional, default: 8
 
 # Maximum duration of an origin request, in seconds.
-originFetchTimeoutInSeconds = 15
+originFetchTimeoutInSeconds = 15 # optional, default: 15
 
 # Maximum origin response size read into memory, in bytes (50 MiB here).
-originMaxImageBytes = 52428800
+originMaxImageBytes = 52428800 # optional, default: 52428800
+
+# Reject source images whose declared dimensions exceed any of these limits.
+maxSourceImageWidth = 12000 # optional, default: 12000
+maxSourceImageHeight = 12000 # optional, default: 12000
+maxSourceImagePixels = 40000000 # optional, default: 40000000
+
+# Reject requested or generated output images above these limits.
+maxOutputImageWidth = 8192 # optional, default: 8192
+maxOutputImageHeight = 8192 # optional, default: 8192
+maxOutputImagePixels = 20000000 # optional, default: 20000000
 
 # Disable signature checks globally. Keep this false in production.
-disableHashChecking = false
+disableHashChecking = false # optional, default: false
 
 # Trusted IPv4 clients that may use transformation parameters without a hash.
 # If server.remoteAddrHeader is set, its value is used for this comparison.
-disableHashCheckingFromIPv4Sources = ["127.0.0.1"]
+disableHashCheckingFromIPv4Sources = ["127.0.0.1"] # optional, default: []
 
 # Sends Cache-Control: no-cache when true. Generated files are still stored in
 # the local image cache.
-disableCaching = false
+disableCaching = false # optional, default: false
 
 # Store transformed images as flat hashed filenames instead of nested paths
 # containing the transformation settings.
-hashCacheFilenames = true
+hashCacheFilenames = true # optional, default: false
 
 # Cache directories. The GO_IMG_SRV_VAR_CACHE_DIR,
 # GO_IMG_SRV_VAR_ORIGINALS_DIR, and GO_IMG_SRV_VAR_IMAGES_DIR environment
 # variables provide defaults when the corresponding entries below are removed.
 # Note: the current fetch implementation stores cached originals in
 # imageCacheDir as well; imageOriginalDir is initialized but not used for reads.
-imageOriginalDir = "/var/cache/image-server/originals"
-imageCacheDir = "/var/cache/image-server/images"
+# imageOriginalDir = "/var/cache/image-server/originals" # optional, default: $GO_IMG_SRV_VAR_ORIGINALS_DIR, then $GO_IMG_SRV_VAR_CACHE_DIR/originals, then "originals"
+# imageCacheDir = "/var/cache/image-server/images" # optional, default: $GO_IMG_SRV_VAR_IMAGES_DIR, then $GO_IMG_SRV_VAR_CACHE_DIR/images, then "images"
 
 # Browser/proxy cache lifetime in seconds (30 days here). Omit or set to 0 to
 # send no max-age directive.
-cacheMaxAgeInSeconds = 2592000
+cacheMaxAgeInSeconds = 2592000 # optional, default: 0 (no max-age directive)
 
 [server]
 # Address and port on which the HTTP server listens.
-listenAddr = "0.0.0.0:8080"
+listenAddr = "0.0.0.0:8080" # optional, default: ":http" (TCP port 80)
 
 # Base URL from which original images are fetched. The request path is appended
 # to this URL; origin query parameters are not supported.
 originalBackend = "https://assets.example.com/images"
 
-# Reserved configuration field. It is parsed but currently not used to limit
-# or schedule image-processing work.
-imageProcessingWorkers = 4
+# Maximum number of image transformations running concurrently. Requests for
+# the same uncached derivative share one processing operation.
+imageProcessingWorkers = 2 # optional, default: 2
+
+# HTTP/1 connection and request limits. Write timeout includes image processing.
+readHeaderTimeoutInSeconds = 5 # optional, default: 5
+readTimeoutInSeconds = 15 # optional, default: 15
+writeTimeoutInSeconds = 120 # optional, default: 120
+idleTimeoutInSeconds = 60 # optional, default: 60
+maxHeaderBytes = 65536 # optional, default: 65536
+maxRequestURIBytes = 8192 # optional, default: 8192
+maxQueryParameters = 16 # optional, default: 16
+
+# Maximum concurrent streams accepted from one HTTP/2 connection.
+maxConcurrentHTTP2Streams = 100 # optional, default: 100
 
 # Optional client-IP header supplied by a trusted reverse proxy. Leave empty to
 # use the TCP remote address. X-Real-IP is preferred because comma-separated
 # X-Forwarded-For lists are not parsed by the current implementation.
-remoteAddrHeader = "X-Real-IP"
+remoteAddrHeader = "X-Real-IP" # optional, default: "" (TCP remote address)
 
 [jpegDefaults]
 # JPEG quality from 1 to 100.
-quality = 85
+quality = 85 # optional, default: 85
 
 [webpDefaults]
 # WebP quality from 0 to 100.
-quality = 80
+quality = 80 # optional, default: 80
 
 # Lossless WebP is useful for graphics but is usually much larger for photos.
-lossless = false
+lossless = false # optional, default: false
 
 [avifDefaults]
 # AVIF color and alpha quality from 0 to 100.
-quality = 60
-alphaQuality = 80
+quality = 60 # optional, default: 60
+alphaQuality = 80 # optional, default: 80
 
 # AVIF encoding speed from 0 (slowest/best compression) to 10 (fastest).
-speed = 6
+speed = 6 # optional, default: 6
 
 # Named profiles can be requested with ?profile=<name> without signing the
 # profile itself. Additional URL transformations still require a valid hash.
 [[profile]]
 name = "product-card"
-width = 480
-height = 480
+width = 480 # optional, default: 0 (use original ratio or size)
+height = 480 # optional, default: 0 (use original ratio or size)
 
 # Supported modes: proportional, contain, cover, and stretch.
-mode = "cover"
-sharpen = 0.5
-autocrop = { apply = true, tolerance = 15, border = 3 }
+mode = "cover" # optional, default: "contain"
+sharpen = 0.5 # optional, default: 0
+autocrop = { apply = true, tolerance = 15, border = 3 } # optional, default: disabled
 
 [[profile]]
 name = "hero"
-width = 1600
-height = 600
-mode = "cover"
-sharpen = 0.3
+width = 1600 # optional, default: 0 (use original ratio or size)
+height = 600 # optional, default: 0 (use original ratio or size)
+mode = "cover" # optional, default: "contain"
+sharpen = 0.3 # optional, default: 0
 
 # Profiles may use another origin and cache directory.
-originalBackend = "https://media.example.com/banners"
-imageCacheDir = "/var/cache/image-server/hero-images"
+originalBackend = "https://media.example.com/banners" # optional, default: server.originalBackend
+imageCacheDir = "/var/cache/image-server/hero-images" # optional, default: top-level imageCacheDir
 
 # The following profile fields are parsed, but currently do not affect output:
 # - type: explicit type=<format> or Accept negotiation selects the output format.
 # - imageOriginalDir: cached originals are currently stored in imageCacheDir.
-# type = "avif"
-# imageOriginalDir = "/var/cache/image-server/hero-originals"
+# type = "avif" # optional, default: "jpeg" (currently overridden by output negotiation)
+# imageOriginalDir = "/var/cache/image-server/hero-originals" # optional, default: top-level imageOriginalDir

@@ -72,3 +72,31 @@ func Test_extractHashFromRequestUri_UsesConfiguredSha256HashLength(t *testing.T)
 	assert.Len(t, hash, 12)
 	assert.True(t, extractHashFromRequestUri(requestUri, parts.Query(), config))
 }
+
+func TestApplyUrlParametersRejectsUnsafeValues(t *testing.T) {
+	config := tools.Config{
+		MaxOutputImageWidth:  1000,
+		MaxOutputImageHeight: 1000,
+		MaxOutputImagePixels: 500000,
+	}
+	testCases := []string{
+		"/image.jpg?width=-1",
+		"/image.jpg?width=1001",
+		"/image.jpg?width=1000&height=1000",
+		"/image.jpg?mode=invalid",
+		"/image.jpg?sharpen=NaN",
+		"/image.jpg?sharpen=11",
+		"/image.jpg?autocrop=101,0",
+		"/image.jpg?autocrop=10,26",
+	}
+
+	for _, requestURI := range testCases {
+		t.Run(requestURI, func(t *testing.T) {
+			parts, err := url.ParseRequestURI(requestURI)
+			assert.NoError(t, err)
+
+			profile := tools.Profile{}
+			assert.Error(t, applyUrlParameters(&profile, config, requestURI, parts.Query(), true))
+		})
+	}
+}

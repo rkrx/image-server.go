@@ -4,8 +4,7 @@ import (
 	"image"
 	"image/color"
 
-	"golang.org/x/image/draw"
-	copy "golang.org/x/image/draw"
+	xdraw "golang.org/x/image/draw"
 )
 
 func GetInnerObjectBounds(img image.Image, toleranceUpper uint32) image.Rectangle {
@@ -13,8 +12,8 @@ func GetInnerObjectBounds(img image.Image, toleranceUpper uint32) image.Rectangl
 	h := Height(img)
 
 	newImg := image.NewNRGBA(img.Bounds())
-	draw.Draw(newImg, newImg.Rect, &image.Uniform{C: color.White}, image.Point{}, draw.Src)
-	copy.Copy(newImg, image.Point{X: 0, Y: 0}, img, img.Bounds(), draw.Over, nil)
+	xdraw.Draw(newImg, newImg.Rect, &image.Uniform{C: color.White}, image.Point{}, xdraw.Src)
+	xdraw.Copy(newImg, image.Point{X: 0, Y: 0}, img, img.Bounds(), xdraw.Over, nil)
 
 	t, r, b, l := make(chan int), make(chan int), make(chan int), make(chan int)
 

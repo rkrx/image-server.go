@@ -1,18 +1,19 @@
 package imaging
 
 import (
-	copy "golang.org/x/image/draw"
 	"image"
 	"image/color"
 	"image/draw"
+
+	xdraw "golang.org/x/image/draw"
 )
 
 type Positioning uint
 
 const (
 	Start  Positioning = 0
-	Center             = 1
-	End                = 2
+	Center Positioning = 1
+	End    Positioning = 2
 )
 
 func SetCanvas(img image.Image, width, height int, horizontalPos, verticalPos Positioning, backgroundColor color.Color) image.Image {
@@ -34,7 +35,7 @@ func SetCanvas(img image.Image, width, height int, horizontalPos, verticalPos Po
 	db := newImg.Bounds()
 	x := alignValue(db.Dx(), imgDx, horizontalPos)
 	y := alignValue(db.Dy(), imgDy, verticalPos)
-	copy.Copy(newImg, image.Point{X: x, Y: y}, img, sb, draw.Over, nil)
+	xdraw.Copy(newImg, image.Point{X: x, Y: y}, img, sb, draw.Over, nil)
 	return newImg
 }
 

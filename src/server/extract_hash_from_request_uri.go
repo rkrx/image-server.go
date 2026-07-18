@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"image-server/src/tools"
-	"log"
 	"net/url"
 	"strings"
 )
@@ -22,16 +21,12 @@ func extractHashFromRequestUri(requestUri string, values url.Values, config tool
 			expectedHash = generateRequestHash(requestUriWoHash, config)
 			if compareRequestHash(expectedHash, hash) {
 				return true
-				//} else {
-				//	log.Printf("Wrong hash. Expected %s, got %s", expectedHash, hash)
 			}
 
 			requestUriWoHashAndType := tools.RegexReplace(requestUriWoHash, "(\\?.*?)([&\\?]type=[a-z]+)(&|$)", "$1$3")
 			expectedHash = generateRequestHash(requestUriWoHashAndType, config)
 			if compareRequestHash(expectedHash, hash) {
 				return true
-			} else {
-				log.Printf("Wrong hash. Expected %s, got %s; %s", expectedHash, hash, requestUriWoHashAndType)
 			}
 		}
 	}

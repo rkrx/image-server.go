@@ -1,19 +1,20 @@
 module image-server
 
-go 1.24
+go 1.26.0
+
+toolchain go1.26.5
 
 require (
 	github.com/BurntSushi/toml v1.0.0
-	github.com/aws/aws-sdk-go v1.43.31
-	github.com/chai2010/webp v1.1.1
+	github.com/chai2010/webp v1.4.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/gorilla/mux v1.8.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/scottleedavis/go-exif-remove v0.0.0-20190908021517-58bdbaac8636
 	github.com/stretchr/testify v1.11.1
 	github.com/vegidio/avif-go v0.0.0-20260715095249-dbb32e4e0094
-	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
-	golang.org/x/net v0.0.0-20220513224357-95641704303c
+	golang.org/x/image v0.44.0
+	golang.org/x/sync v0.22.0
 )
 
 require (
@@ -29,9 +30,8 @@ require (
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-xmlfmt/xmlfmt v0.0.0-20220206211657-0a94163c4677 // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/net v0.57.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
