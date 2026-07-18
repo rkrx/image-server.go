@@ -13,6 +13,11 @@ quality = 85
 quality = 80
 lossless = true
 
+[avifDefaults]
+quality = 55
+alphaQuality = 75
+speed = 8
+
 [[profile]]
 name = "500px"
 width = 500

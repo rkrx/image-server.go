@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -87,28 +86,31 @@ func (backend Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	//endregion
 
-	//region Check if the URL has a output file type
-	if r.URL.Query().Has("type") {
-		fileType := strings.ToLower(r.URL.Query().Get("type"))
-		if err := profile.ApplyFileType(fileType); err != nil {
-			w.WriteHeader(403)
-			_, _ = w.Write([]byte(err.Error()))
-			return
-		}
+	//region Determine the output file type
+	negotiated, err := applyOutputFileType(&profile, r)
+	if err != nil {
+		w.WriteHeader(403)
+		_, _ = w.Write([]byte(err.Error()))
+		return
 	}
+	if negotiated {
+		w.Header().Add("Vary", "Accept")
+	}
+	w.Header().Set("Content-Type", profile.Type.ContentType())
 	//endregion
 
 	//region Project the origFilename and the cachePath
 	origFilename, cachePath := "", ""
+	cacheKey := profile.GetDirectoryHash(backend.Config)
 	if backend.Config.HashCacheFilenames {
-		origFilename = tools.Md5(filepath.Join(profile.GetDirectoryHash(), r.URL.Path))
+		origFilename = tools.Md5(filepath.Join(cacheKey, r.URL.Path))
 		cachePath = filepath.Join(profile.ImageCacheDir, fmt.Sprintf("%s.%s", origFilename, profile.Type))
 	} else {
 		origFilename = tools.Md5(r.URL.Path)
-		cachePath = filepath.Join(profile.ImageCacheDir, profile.GetDirectoryHash(), fmt.Sprintf("%s.%s", origFilename, profile.Type))
+		cachePath = filepath.Join(profile.ImageCacheDir, cacheKey, fmt.Sprintf("%s.%s", origFilename, profile.Type))
 	}
 
-	if success, groups := tools.RegexMatch(r.URL.Path, "\\.(jpe?g|gif|png|webp)$"); success {
+	if success, groups := tools.RegexMatch(r.URL.Path, "\\.(jpe?g|gif|png|webp|avif)$"); success {
 		origFilename = fmt.Sprintf("%s.%s", origFilename, groups[1])
 	}
 	//endregion

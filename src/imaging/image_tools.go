@@ -6,6 +6,7 @@ import (
 	im "github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	exifremove "github.com/scottleedavis/go-exif-remove"
+	avif "github.com/vegidio/avif-go"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -32,8 +33,8 @@ func Height(img image.Image) int {
 
 func Resize(img image.Image, width, height int) image.Image {
 	imgW, imgH := Width(img), Height(img)
-	if imgW != width && imgH != height {
-		return resize.Resize(uint(imgW), uint(imgH), img, resize.Lanczos3)
+	if imgW != width || imgH != height {
+		return resize.Resize(uint(width), uint(height), img, resize.Lanczos3)
 	}
 	return img
 }
@@ -101,6 +102,19 @@ func SaveToGifFile(img image.Image, filepath string, options *gif.Options) error
 	var buf = bytes.Buffer{}
 	err := gif.Encode(&buf, img, options)
 	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath, buf.Bytes(), 0666)
+}
+
+func SaveToAvifFile(img image.Image, filepath string, quality, alphaQuality, speed int) error {
+	var buf bytes.Buffer
+	options := &avif.Options{
+		ColorQuality: quality,
+		AlphaQuality: alphaQuality,
+		Speed:        speed,
+	}
+	if err := avif.Encode(&buf, img, options); err != nil {
 		return err
 	}
 	return os.WriteFile(filepath, buf.Bytes(), 0666)

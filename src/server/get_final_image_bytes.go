@@ -65,6 +65,16 @@ func (backend Backend) getFinalImageBytes(ctx context.Context, requestPath, file
 		if err := webp.Save(cachePath, img, &webp.Options{Quality: quality, Lossless: lossless}); err != nil {
 			return 500, err
 		}
+	case tools.Avif:
+		if err := imaging.SaveToAvifFile(
+			img,
+			cachePath,
+			backend.Config.AvifDefaults.Quality,
+			backend.Config.AvifDefaults.AlphaQuality,
+			backend.Config.AvifDefaults.Speed,
+		); err != nil {
+			return 500, err
+		}
 	case tools.Png:
 		if err := imaging.SaveToPngFile(img, cachePath); err != nil {
 			return 500, err

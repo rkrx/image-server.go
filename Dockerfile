@@ -1,5 +1,5 @@
-FROM golang:1.18.0-alpine3.15
-RUN apk add gcc g++ zlib zlib-dev
+FROM golang:1.24-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ zlib1g-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY src /app/src
 COPY go.mod /app/

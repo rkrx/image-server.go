@@ -23,8 +23,18 @@ type FileType string
 const (
 	Jpeg FileType = "jpeg"
 	WebP FileType = "webp"
+	Avif FileType = "avif"
 	Png  FileType = "png"
 	Gif  FileType = "gif"
+)
+
+const (
+	ImageCacheSchemaVersion = 2
+	DefaultJpegQuality      = 85
+	DefaultWebpQuality      = 80
+	DefaultAvifQuality      = 60
+	DefaultAvifAlphaQuality = 80
+	DefaultAvifSpeed        = 6
 )
 
 type Profile struct {
@@ -40,6 +50,23 @@ type Profile struct {
 	Autocrop         autocrop
 }
 
+func (fileType FileType) ContentType() string {
+	switch fileType {
+	case Jpeg:
+		return "image/jpeg"
+	case WebP:
+		return "image/webp"
+	case Avif:
+		return "image/avif"
+	case Png:
+		return "image/png"
+	case Gif:
+		return "image/gif"
+	default:
+		return "application/octet-stream"
+	}
+}
+
 // ApplyFileType Sets Profile.Type to a valid file type based on string filetype. If fileType is not recognized or
 // empty, the currently set file type will remain untoucher or - if empty - set to Jpeg.
 func (profile *Profile) ApplyFileType(fileType string) error {
@@ -48,6 +75,8 @@ func (profile *Profile) ApplyFileType(fileType string) error {
 		profile.Type = Jpeg
 	case "webp":
 		profile.Type = WebP
+	case "avif":
+		profile.Type = Avif
 	case "png":
 		profile.Type = Png
 	case "gif":
@@ -104,13 +133,14 @@ func (profile *Profile) ApplyFromProfile(otherProfile Profile) {
 	}
 }
 
-func (profile Profile) GetDirectoryHash() string {
+func (profile Profile) GetDirectoryHash(config Config) string {
 	var name = "dynamic"
 	if profile.Name != "" {
 		name = fmt.Sprintf("name=%s", profile.Name)
 	}
 	var backendHash = fmt.Sprintf("%x", md5.Sum([]byte(profile.OriginalBackend)))
-	return fmt.Sprintf("backend-hash=%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f",
+	return fmt.Sprintf("cache-v=%d;backend-hash=%s;%s;%d-%d;m=%s;sh=%.3f;ac=%.3f,%.3f;t=%s;jq=%d;wq=%d;wl=%t;aq=%d;aaq=%d;as=%d",
+		ImageCacheSchemaVersion,
 		backendHash,
 		name,
 		profile.Width,
@@ -119,6 +149,13 @@ func (profile Profile) GetDirectoryHash() string {
 		profile.Sharpen,
 		profile.Autocrop.Tolerance,
 		profile.Autocrop.Border,
+		profile.Type,
+		config.JpegDefaults.Quality,
+		config.WebpDefaults.Quality,
+		config.WebpDefaults.Lossless,
+		config.AvifDefaults.Quality,
+		config.AvifDefaults.AlphaQuality,
+		config.AvifDefaults.Speed,
 	)
 }
 
@@ -136,6 +173,12 @@ type JpegDefaults struct {
 type WebpDefaults struct {
 	Quality  int  `toml:"quality"`
 	Lossless bool `toml:"lossless"`
+}
+
+type AvifDefaults struct {
+	Quality      int `toml:"quality"`
+	AlphaQuality int `toml:"alphaQuality"`
+	Speed        int `toml:"speed"`
 }
 
 type Config struct {
@@ -156,6 +199,7 @@ type Config struct {
 	Profiles                           []Profile    `toml:"profile"`
 	JpegDefaults                       JpegDefaults `toml:"jpegDefaults"`
 	WebpDefaults                       WebpDefaults `toml:"webpDefaults"`
+	AvifDefaults                       AvifDefaults `toml:"avifDefaults"`
 }
 
 func (conf Config) GetProfile(name string) (Profile, error) {
@@ -236,9 +280,12 @@ func LoadConfig(filename string) (Config, error) {
 		}
 	}
 
-	conf.JpegDefaults.Quality = 90
-	conf.WebpDefaults.Quality = 90
+	conf.JpegDefaults.Quality = DefaultJpegQuality
+	conf.WebpDefaults.Quality = DefaultWebpQuality
 	conf.WebpDefaults.Lossless = false
+	conf.AvifDefaults.Quality = DefaultAvifQuality
+	conf.AvifDefaults.AlphaQuality = DefaultAvifAlphaQuality
+	conf.AvifDefaults.Speed = DefaultAvifSpeed
 
 	_, err := toml.DecodeFile(filename, &conf)
 
