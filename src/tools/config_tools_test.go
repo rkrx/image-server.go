@@ -157,3 +157,24 @@ func TestLoadConfigUsesEncoderDefaults(t *testing.T) {
 	assert.Equal(t, DefaultAvifAlphaQuality, config.AvifDefaults.AlphaQuality)
 	assert.Equal(t, DefaultAvifSpeed, config.AvifDefaults.Speed)
 }
+
+func TestSampleConfig(t *testing.T) {
+	cacheDir := t.TempDir()
+	t.Setenv("GO_IMG_SRV_VAR_CACHE_DIR", cacheDir)
+	t.Setenv("GO_IMG_SRV_VAR_ORIGINALS_DIR", "")
+	t.Setenv("GO_IMG_SRV_VAR_IMAGES_DIR", "")
+
+	config, err := LoadConfig("../../config.sample.toml")
+	assert.NoError(t, err)
+	assert.Equal(t, "sha256", config.HashAlgorithm)
+	assert.Equal(t, DefaultJpegQuality, config.JpegDefaults.Quality)
+	assert.Equal(t, DefaultWebpQuality, config.WebpDefaults.Quality)
+	assert.Equal(t, DefaultAvifQuality, config.AvifDefaults.Quality)
+
+	productCard, err := config.GetProfile("product-card")
+	assert.NoError(t, err)
+	assert.Equal(t, 480, productCard.Width)
+	assert.Equal(t, 480, productCard.Height)
+	assert.Equal(t, "cover", productCard.Mode)
+	assert.True(t, productCard.Autocrop.Apply)
+}

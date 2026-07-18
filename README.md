@@ -8,6 +8,12 @@ A reverse proxy that resizes images to a specific size, can automatically crop a
 
 ## Dockercod
 
+Create a local configuration and replace the example values before building:
+
+```shell
+cp config.sample.toml config.toml
+```
+
 Build the image:
 
 ```

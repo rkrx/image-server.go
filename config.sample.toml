@@ -1,0 +1,113 @@
+# Copy this file to config.toml and replace all example values before use.
+
+# Write application logs to stdout. Defaults to true.
+enableLogging = true
+
+# Required secret used to sign dynamic transformation parameters.
+# Use a long, randomly generated value in production.
+secret = "replace-with-a-long-random-secret"
+
+# Supported values: "md5" (legacy), "sha256", and "hmac-sha256".
+# Both SHA-256 values use HMAC-SHA256. New installations should use sha256.
+hashAlgorithm = "sha256"
+
+# Number of hexadecimal characters retained from the generated request hash.
+hashLength = 16
+
+# Maximum duration of an origin request, in seconds.
+originFetchTimeoutInSeconds = 15
+
+# Maximum origin response size read into memory, in bytes (50 MiB here).
+originMaxImageBytes = 52428800
+
+# Disable signature checks globally. Keep this false in production.
+disableHashChecking = false
+
+# Trusted IPv4 clients that may use transformation parameters without a hash.
+# If server.remoteAddrHeader is set, its value is used for this comparison.
+disableHashCheckingFromIPv4Sources = ["127.0.0.1"]
+
+# Sends Cache-Control: no-cache when true. Generated files are still stored in
+# the local image cache.
+disableCaching = false
+
+# Store transformed images as flat hashed filenames instead of nested paths
+# containing the transformation settings.
+hashCacheFilenames = true
+
+# Cache directories. The GO_IMG_SRV_VAR_CACHE_DIR,
+# GO_IMG_SRV_VAR_ORIGINALS_DIR, and GO_IMG_SRV_VAR_IMAGES_DIR environment
+# variables provide defaults when the corresponding entries below are removed.
+# Note: the current fetch implementation stores cached originals in
+# imageCacheDir as well; imageOriginalDir is initialized but not used for reads.
+imageOriginalDir = "/var/cache/image-server/originals"
+imageCacheDir = "/var/cache/image-server/images"
+
+# Browser/proxy cache lifetime in seconds (30 days here). Omit or set to 0 to
+# send no max-age directive.
+cacheMaxAgeInSeconds = 2592000
+
+[server]
+# Address and port on which the HTTP server listens.
+listenAddr = "0.0.0.0:8080"
+
+# Base URL from which original images are fetched. The request path is appended
+# to this URL; origin query parameters are not supported.
+originalBackend = "https://assets.example.com/images"
+
+# Reserved configuration field. It is parsed but currently not used to limit
+# or schedule image-processing work.
+imageProcessingWorkers = 4
+
+# Optional client-IP header supplied by a trusted reverse proxy. Leave empty to
+# use the TCP remote address. X-Real-IP is preferred because comma-separated
+# X-Forwarded-For lists are not parsed by the current implementation.
+remoteAddrHeader = "X-Real-IP"
+
+[jpegDefaults]
+# JPEG quality from 1 to 100.
+quality = 85
+
+[webpDefaults]
+# WebP quality from 0 to 100.
+quality = 80
+
+# Lossless WebP is useful for graphics but is usually much larger for photos.
+lossless = false
+
+[avifDefaults]
+# AVIF color and alpha quality from 0 to 100.
+quality = 60
+alphaQuality = 80
+
+# AVIF encoding speed from 0 (slowest/best compression) to 10 (fastest).
+speed = 6
+
+# Named profiles can be requested with ?profile=<name> without signing the
+# profile itself. Additional URL transformations still require a valid hash.
+[[profile]]
+name = "product-card"
+width = 480
+height = 480
+
+# Supported modes: proportional, contain, cover, and stretch.
+mode = "cover"
+sharpen = 0.5
+autocrop = { apply = true, tolerance = 15, border = 3 }
+
+[[profile]]
+name = "hero"
+width = 1600
+height = 600
+mode = "cover"
+sharpen = 0.3
+
+# Profiles may use another origin and cache directory.
+originalBackend = "https://media.example.com/banners"
+imageCacheDir = "/var/cache/image-server/hero-images"
+
+# The following profile fields are parsed, but currently do not affect output:
+# - type: explicit type=<format> or Accept negotiation selects the output format.
+# - imageOriginalDir: cached originals are currently stored in imageCacheDir.
+# type = "avif"
+# imageOriginalDir = "/var/cache/image-server/hero-originals"
