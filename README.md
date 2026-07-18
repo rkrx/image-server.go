@@ -30,7 +30,7 @@ docker run -d --restart unless-stopped --name go-image-server -v /var/cache/imag
 | Height constraint | `height` or `h` | Positive integer                              | Set the height of the resulting image. (_Optional_)                                   |
 | Profile           | `profile`       | <`name of the profile`>                       | Profiles can be configured separately in the config file. (_Optional_)                |
 | Mode              | `mode`          | `proportional`, `contain`, `cover`, `stretch` | The operational mode when the image is resized.                                       |
-| Output format     | `type`          | `jpeg`, `webp`, `avif`, `png`, `gif`          | Explicitly select the output format. (_Optional_)                                      |
+| Output format     | `type`          | `jpeg`, `webp`, `avif`, `png`, `gif`          | Explicitly select the output format. (_Optional_)                                     |
 | Autocrop          | `autocrop`      | `threshold`, `border`                         | The settings for autocrop.                                                            |
 | Parameter-Hash    | `hash`          | HEX-Code                                      | A hex code hash to prevent unauthorized or unwanted image requests from being cached. |
 | API version       | `v`             | `0.1..∞`                                      | The API version, currently 1.0 for this project.                                      |
