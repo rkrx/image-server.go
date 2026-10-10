@@ -2,17 +2,16 @@ package imaging
 
 import (
 	"bytes"
-	"github.com/chai2010/webp"
-	im "github.com/disintegration/imaging"
-	"github.com/nfnt/resize"
-	exifremove "github.com/scottleedavis/go-exif-remove"
-	avif "github.com/vegidio/avif-go"
 	"image"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"log"
 	"os"
+
+	im "github.com/disintegration/imaging"
+	"github.com/nfnt/resize"
+	exifremove "github.com/scottleedavis/go-exif-remove"
+	avif "github.com/vegidio/avif-go"
 )
 
 type ImageResizeProjectionMode string
@@ -34,6 +33,14 @@ func Resize(img image.Image, width, height int) image.Image {
 	imgW, imgH := Width(img), Height(img)
 	if imgW != width || imgH != height {
 		return resize.Resize(uint(width), uint(height), img, resize.Lanczos3)
+	}
+	return img
+}
+
+// ResizePixelated preserves hard pixel edges and transparency using nearest-neighbor sampling.
+func ResizePixelated(img image.Image, width, height int) image.Image {
+	if Width(img) != width || Height(img) != height {
+		return resize.Resize(uint(width), uint(height), img, resize.NearestNeighbor)
 	}
 	return img
 }
@@ -117,22 +124,4 @@ func SaveToAvifFile(img image.Image, filepath string, quality, alphaQuality, spe
 		return err
 	}
 	return os.WriteFile(filepath, buf.Bytes(), 0600)
-}
-
-func Img2WebpBuffer(buf *bytes.Buffer, img image.Image, quality float32) error {
-	if err := webp.Encode(buf, img, &webp.Options{Quality: quality}); err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
-}
-
-func Img2JpegBytes(img image.Image, quality int) ([]byte, error) {
-	buf := bytes.Buffer{}
-	err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: quality})
-	return buf.Bytes(), err
-}
-
-func Img2JpegBuffer(buf *bytes.Buffer, img image.Image, quality int) error {
-	return jpeg.Encode(buf, img, &jpeg.Options{Quality: quality})
 }

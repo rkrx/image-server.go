@@ -2,16 +2,17 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"image"
 	"image-server/src/imaging"
 	"image-server/src/tools"
-	"image/color"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -79,6 +80,11 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", backend.Config.CacheMaxAgeInSeconds))
 	}
 
+	values, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		writeHTTPError(w, http.StatusBadRequest)
+		return
+	}
 	profile := backend.Config.GetDefaultProfile()
 
 	//region Check if the client ip found in DisableHashCheckingFromIPv4Sources
@@ -110,7 +116,7 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//endregion
 
 	//region Apply URL-Parameters to the current profile
-	if err := applyUrlParameters(&profile, backend.Config, r.RequestURI, r.URL.Query(), disableHashChecking); err != nil {
+	if err := applyUrlParameters(&profile, backend.Config, r.RequestURI, values, disableHashChecking); err != nil {
 		if errors.Is(err, errInvalidRequestHash) {
 			writeHTTPError(w, http.StatusForbidden)
 		} else {
@@ -119,6 +125,30 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//endregion
+
+	virtualCanvas := values.Has("canvas")
+	if virtualCanvas && (len(values["canvas"]) != 1 || values.Get("canvas") != "white" || profile.Width < 1 || profile.Height < 1) {
+		writeHTTPError(w, http.StatusBadRequest)
+		return
+	}
+
+	var composition *compositionPlan
+	if values.Has("put") || values.Has("putb") {
+		payload, err := compositionPayload(values)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest)
+			return
+		}
+		composition, err = backend.prepareComposition(payload, profile)
+		if err != nil {
+			status := http.StatusBadRequest
+			if errors.Is(err, imaging.ErrCompositionLimit) {
+				status = http.StatusRequestEntityTooLarge
+			}
+			writeHTTPError(w, status)
+			return
+		}
+	}
 
 	//region Determine the output file type
 	negotiated, err := applyOutputFileType(&profile, r)
@@ -135,16 +165,31 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//region Project the origFilename and the cachePath
 	origFilename, cachePath := "", ""
 	cacheKey := profile.GetDirectoryHash(backend.Config)
+	if virtualCanvas {
+		cacheKey += ";canvas=white"
+	}
+	originalKey := cacheKey
+	if composition != nil {
+		// Keep directory components short, independently of profile-name length.
+		cacheKey = fmt.Sprintf("composition-v1-%x", sha256.Sum256([]byte(cacheKey+";put="+composition.cacheHash)))
+	}
 	if backend.Config.HashCacheFilenames {
-		origFilename = tools.Md5(filepath.Join(cacheKey, r.URL.Path))
-		cachePath = filepath.Join(profile.ImageCacheDir, fmt.Sprintf("%s.%s", origFilename, profile.Type))
+		origFilename = tools.Md5(filepath.Join(originalKey, r.URL.Path))
+		cacheFilename := tools.Md5(filepath.Join(cacheKey, r.URL.Path))
+		cachePath = filepath.Join(profile.ImageCacheDir, fmt.Sprintf("%s.%s", cacheFilename, profile.Type))
 	} else {
 		origFilename = tools.Md5(r.URL.Path)
 		cachePath = filepath.Join(profile.ImageCacheDir, cacheKey, fmt.Sprintf("%s.%s", origFilename, profile.Type))
 	}
+	if composition != nil {
+		originURL := tools.ConcatPathParts(profile.OriginalBackend, r.URL.Path)
+		origFilename = fmt.Sprintf("source-%x", sha256.Sum256([]byte(originURL)))
+	}
 
-	if success, groups := tools.RegexMatch(r.URL.Path, "\\.(jpe?g|gif|png|webp|avif)$"); success {
-		origFilename = fmt.Sprintf("%s.%s", origFilename, groups[1])
+	if composition == nil {
+		if success, groups := tools.RegexMatch(r.URL.Path, "\\.(jpe?g|gif|png|webp|avif)$"); success {
+			origFilename = fmt.Sprintf("%s.%s", origFilename, groups[1])
+		}
 	}
 	//endregion
 
@@ -166,77 +211,30 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			requestPath := tools.ConcatPathParts(profile.OriginalBackend, r.URL.Path)
-			statusCode, processingErr := backend.getFinalImageBytes(r.Context(), requestPath, origFilename, cachePath, profile, func(img image.Image) (image.Image, error) {
-				if profile.Width < 1 && profile.Height < 1 {
-					profile.Width = img.Bounds().Dx()
-					profile.Height = img.Bounds().Dy()
-				}
-
-				if profile.Autocrop.Apply {
-					img = imaging.Autocrop(img, profile.Autocrop.Tolerance, profile.Autocrop.Border)
-				}
-
-				if profile.Mode == "proportional" {
-					width, height := imaging.CalcProportionalInnerMeasures(img.Bounds().Dx(), img.Bounds().Dy(), profile.Width, profile.Height)
-					if err := backend.Config.ValidateOutputImageDimensions(width, height); err != nil {
+			var budget *compositionBudget
+			if composition != nil || virtualCanvas {
+				budget = newCompositionBudget(backend.Config)
+			}
+			statusCode, processingErr := backend.getFinalImageBytes(r.Context(), requestPath, origFilename, cachePath, profile, budget, virtualCanvas, func(img image.Image) (image.Image, error) {
+				var err error
+				if !virtualCanvas {
+					img, err = backend.transformImage(img, profile, composition == nil, budget)
+					if err != nil {
 						return nil, err
 					}
-					img = imaging.ResizeProportional(img, profile.Width, profile.Height, imaging.Contain)
+				}
+				if composition != nil {
+					img, err = backend.composeImage(r.Context(), img, composition, budget)
+					if err != nil {
+						return nil, err
+					}
+				}
+				if (composition != nil || virtualCanvas) && profile.Sharpen > 0 {
+					if err := budget.chargeRender(img.Bounds().Dx(), img.Bounds().Dy()); err != nil {
+						return nil, err
+					}
 					img = imaging.Sharpen(img, float64(profile.Sharpen))
 				}
-
-				if profile.Mode == "contain" {
-					width, height := imaging.CalcProportionalInnerMeasures(img.Bounds().Dx(), img.Bounds().Dy(), profile.Width, profile.Height)
-					if err := backend.Config.ValidateOutputImageDimensions(width, height); err != nil {
-						return nil, err
-					}
-					canvasWidth, canvasHeight := profile.Width, profile.Height
-					if canvasWidth == 0 {
-						canvasWidth = width
-					}
-					if canvasHeight == 0 {
-						canvasHeight = height
-					}
-					if err := backend.Config.ValidateOutputImageDimensions(canvasWidth, canvasHeight); err != nil {
-						return nil, err
-					}
-					img = imaging.ResizeProportional(img, profile.Width, profile.Height, imaging.Contain)
-					img = imaging.Sharpen(img, float64(profile.Sharpen))
-					img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
-				}
-
-				if profile.Mode == "cover" {
-					width, height := imaging.CalcProportionalOuterMeasures(img.Bounds().Dx(), img.Bounds().Dy(), profile.Width, profile.Height)
-					if err := backend.Config.ValidateOutputImageDimensions(width, height); err != nil {
-						return nil, err
-					}
-					canvasWidth, canvasHeight := profile.Width, profile.Height
-					if canvasWidth == 0 {
-						canvasWidth = width
-					}
-					if canvasHeight == 0 {
-						canvasHeight = height
-					}
-					if err := backend.Config.ValidateOutputImageDimensions(canvasWidth, canvasHeight); err != nil {
-						return nil, err
-					}
-					img = imaging.ResizeProportional(img, profile.Width, profile.Height, imaging.Cover)
-					img = imaging.Sharpen(img, float64(profile.Sharpen))
-					img = imaging.SetCanvas(img, profile.Width, profile.Height, imaging.Center, imaging.Center, color.White)
-				}
-
-				if profile.Mode == "stretch" {
-					width, height := profile.Width, profile.Height
-					if width == 0 || height == 0 {
-						width, height = imaging.CalcProportionalInnerMeasures(img.Bounds().Dx(), img.Bounds().Dy(), width, height)
-					}
-					if err := backend.Config.ValidateOutputImageDimensions(width, height); err != nil {
-						return nil, err
-					}
-					img = imaging.Resize(img, profile.Width, profile.Height)
-					img = imaging.Sharpen(img, float64(profile.Sharpen))
-				}
-
 				return img, nil
 			})
 			return imageProcessingResult{statusCode: statusCode}, processingErr

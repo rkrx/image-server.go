@@ -8,11 +8,22 @@ import (
 )
 
 func Autocrop(img image.Image, tolerancePercent, borderPercent float32) image.Image {
+	result, _ := AutocropChecked(img, tolerancePercent, borderPercent, nil)
+	return result
+}
+
+// AutocropChecked validates the generated dimensions before allocating pixels.
+func AutocropChecked(img image.Image, tolerancePercent, borderPercent float32, validate func(int, int) error) (image.Image, error) {
 	measures := getAutocropMeasures(img, tolerancePercent, borderPercent)
+	if validate != nil {
+		if err := validate(measures.target.w, measures.target.h); err != nil {
+			return nil, err
+		}
+	}
 	newImg := image.NewRGBA(measures.target.Dim())
 	draw.Draw(newImg, measures.target.Dim(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
 	draw.Copy(newImg, measures.target.Point(), img, measures.source.Rect(), draw.Over, nil)
-	return newImg
+	return newImg, nil
 }
 
 func getAutocropMeasures(img image.Image, tolerancePercent, borderPercent float32) AutocropMeasures {

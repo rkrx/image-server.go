@@ -33,6 +33,15 @@ maxOutputImageWidth = 8192 # optional, default: 8192
 maxOutputImageHeight = 8192 # optional, default: 8192
 maxOutputImagePixels = 20000000 # optional, default: 20000000
 
+# Per-composition limits (requests containing put). Depth starts at 1 for the
+# elements directly inside the root canvas. Source pixels count each decode,
+# including the background; render pixels count cumulative processing work.
+maxCompositionNodes = 64 # optional, default: 64
+maxCompositionImages = 32 # optional, default: 32
+maxCompositionDepth = 8 # optional, default: 8
+maxCompositionSourcePixels = 80000000 # optional, default: 80000000
+maxCompositionRenderPixels = 80000000 # optional, default: 80000000
+
 # Disable signature checks globally. Keep this false in production.
 disableHashChecking = false # optional, default: false
 

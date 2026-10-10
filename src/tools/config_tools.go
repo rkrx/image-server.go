@@ -42,6 +42,11 @@ const (
 	DefaultMaxOutputImageWidth              = 8192
 	DefaultMaxOutputImageHeight             = 8192
 	DefaultMaxOutputImagePixels       int64 = 20000000
+	DefaultMaxCompositionNodes              = 64
+	DefaultMaxCompositionImages             = 32
+	DefaultMaxCompositionDepth              = 8
+	DefaultMaxCompositionSourcePixels int64 = 80000000
+	DefaultMaxCompositionRenderPixels int64 = 80000000
 	DefaultMaxRequestURIBytes               = 8192
 	DefaultMaxQueryParameters               = 16
 	DefaultReadHeaderTimeoutInSeconds       = 5
@@ -217,6 +222,11 @@ type Config struct {
 	MaxOutputImageWidth                int          `toml:"maxOutputImageWidth"`
 	MaxOutputImageHeight               int          `toml:"maxOutputImageHeight"`
 	MaxOutputImagePixels               int64        `toml:"maxOutputImagePixels"`
+	MaxCompositionNodes                int          `toml:"maxCompositionNodes"`
+	MaxCompositionImages               int          `toml:"maxCompositionImages"`
+	MaxCompositionDepth                int          `toml:"maxCompositionDepth"`
+	MaxCompositionSourcePixels         int64        `toml:"maxCompositionSourcePixels"`
+	MaxCompositionRenderPixels         int64        `toml:"maxCompositionRenderPixels"`
 	DisableHashChecking                bool         `toml:"disableHashChecking"`
 	DisableHashCheckingFromIPv4Sources []string     `toml:"disableHashCheckingFromIPv4Sources"`
 	DisableCaching                     bool         `toml:"disableCaching"`
@@ -356,6 +366,11 @@ func LoadConfig(filename string) (Config, error) {
 	conf.MaxOutputImageWidth = DefaultMaxOutputImageWidth
 	conf.MaxOutputImageHeight = DefaultMaxOutputImageHeight
 	conf.MaxOutputImagePixels = DefaultMaxOutputImagePixels
+	conf.MaxCompositionNodes = DefaultMaxCompositionNodes
+	conf.MaxCompositionImages = DefaultMaxCompositionImages
+	conf.MaxCompositionDepth = DefaultMaxCompositionDepth
+	conf.MaxCompositionSourcePixels = DefaultMaxCompositionSourcePixels
+	conf.MaxCompositionRenderPixels = DefaultMaxCompositionRenderPixels
 	conf.Server.ImageProcessingWorkers = DefaultImageProcessingWorkers
 	conf.Server.ReadHeaderTimeoutInSeconds = DefaultReadHeaderTimeoutInSeconds
 	conf.Server.ReadTimeoutInSeconds = DefaultReadTimeoutInSeconds
@@ -429,6 +444,11 @@ func applySafeDefaults(conf *Config) {
 	conf.MaxOutputImageWidth = positiveOrDefault(conf.MaxOutputImageWidth, DefaultMaxOutputImageWidth)
 	conf.MaxOutputImageHeight = positiveOrDefault(conf.MaxOutputImageHeight, DefaultMaxOutputImageHeight)
 	conf.MaxOutputImagePixels = positiveInt64OrDefault(conf.MaxOutputImagePixels, DefaultMaxOutputImagePixels)
+	conf.MaxCompositionNodes = positiveOrDefault(conf.MaxCompositionNodes, DefaultMaxCompositionNodes)
+	conf.MaxCompositionImages = positiveOrDefault(conf.MaxCompositionImages, DefaultMaxCompositionImages)
+	conf.MaxCompositionDepth = positiveOrDefault(conf.MaxCompositionDepth, DefaultMaxCompositionDepth)
+	conf.MaxCompositionSourcePixels = positiveInt64OrDefault(conf.MaxCompositionSourcePixels, DefaultMaxCompositionSourcePixels)
+	conf.MaxCompositionRenderPixels = positiveInt64OrDefault(conf.MaxCompositionRenderPixels, DefaultMaxCompositionRenderPixels)
 	conf.Server.ImageProcessingWorkers = positiveOrDefault(conf.Server.ImageProcessingWorkers, DefaultImageProcessingWorkers)
 	conf.Server.ReadHeaderTimeoutInSeconds = positiveOrDefault(conf.Server.ReadHeaderTimeoutInSeconds, DefaultReadHeaderTimeoutInSeconds)
 	conf.Server.ReadTimeoutInSeconds = positiveOrDefault(conf.Server.ReadTimeoutInSeconds, DefaultReadTimeoutInSeconds)

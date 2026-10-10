@@ -20,7 +20,8 @@ func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri 
 		profile.ApplyFromProfile(namedProfile)
 	}
 
-	parameterFound := false
+	// A composition is a transformation even when no other parameters are set.
+	parameterFound := values.Has("put") || values.Has("putb") || values.Has("canvas")
 	if values.Has("width") {
 		width, err := parseIntegerParameter("width", values.Get("width"))
 		if err != nil {
