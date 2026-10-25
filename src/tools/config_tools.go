@@ -209,6 +209,16 @@ type AvifDefaults struct {
 	Speed        int `toml:"speed"`
 }
 
+type CORSConfig struct {
+	Enabled          bool     `toml:"enabled"`
+	AllowedOrigins   []string `toml:"allowedOrigins"`
+	AllowedMethods   []string `toml:"allowedMethods"`
+	AllowedHeaders   []string `toml:"allowedHeaders"`
+	ExposedHeaders   []string `toml:"exposedHeaders"`
+	AllowCredentials bool     `toml:"allowCredentials"`
+	MaxAgeInSeconds  int      `toml:"maxAgeInSeconds"`
+}
+
 type Config struct {
 	LoggingEnabled                     bool         `toml:"enableLogging"`
 	Secret                             string       `toml:"secret"`
@@ -239,6 +249,7 @@ type Config struct {
 	JpegDefaults                       JpegDefaults `toml:"jpegDefaults"`
 	WebpDefaults                       WebpDefaults `toml:"webpDefaults"`
 	AvifDefaults                       AvifDefaults `toml:"avifDefaults"`
+	CORS                               CORSConfig   `toml:"cors"`
 }
 
 func (conf Config) GetProfile(name string) (Profile, error) {
@@ -489,6 +500,19 @@ func validateConfig(conf Config) error {
 	}
 	if conf.AvifDefaults.Speed < 0 || conf.AvifDefaults.Speed > 10 {
 		return errors.New("AVIF speed must be between 0 and 10")
+	}
+	if conf.CORS.Enabled {
+		if len(conf.CORS.AllowedOrigins) == 0 {
+			return errors.New("cors.allowedOrigins must not be empty when cors.enabled is true")
+		}
+		for _, origin := range conf.CORS.AllowedOrigins {
+			if origin == "*" && conf.CORS.AllowCredentials {
+				return errors.New("cors.allowCredentials must not be combined with the \"*\" origin")
+			}
+		}
+		if conf.CORS.MaxAgeInSeconds < 0 || conf.CORS.MaxAgeInSeconds > 86400 {
+			return errors.New("cors.maxAgeInSeconds must be between 0 and 86400")
+		}
 	}
 	for _, profile := range conf.Profiles {
 		if err := conf.ValidateRequestedOutputDimensions(profile.Width, profile.Height); err != nil {

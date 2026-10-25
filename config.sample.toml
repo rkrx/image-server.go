@@ -98,6 +98,19 @@ maxConcurrentHTTP2Streams = 100 # optional, default: 100
 # X-Forwarded-For lists are not parsed by the current implementation.
 remoteAddrHeader = "X-Real-IP" # optional, default: "" (TCP remote address)
 
+[cors]
+# Cross-Origin Resource Sharing. Disabled by default. When enabled, preflight
+# (OPTIONS) requests are answered and matching responses receive the configured
+# Access-Control-* headers. Allowed origins must be listed explicitly or use
+# "*" for a public API. "*" cannot be combined with allowCredentials.
+enabled = false # optional, default: false
+allowedOrigins = ["https://app.example.com"] # required when enabled
+allowedMethods = ["GET", "HEAD"] # optional, default: ["GET", "HEAD"]
+allowedHeaders = ["Accept"] # optional, default: reflects Access-Control-Request-Headers
+exposedHeaders = ["Content-Length", "Content-Type"] # optional, default: []
+allowCredentials = false # optional, default: false
+maxAgeInSeconds = 600 # optional, default: 0 (no caching of preflight)
+
 [jpegDefaults]
 # JPEG quality from 1 to 100.
 quality = 85 # optional, default: 85

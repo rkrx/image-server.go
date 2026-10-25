@@ -60,8 +60,15 @@ func newOriginHTTPClient(config tools.Config) *http.Client {
 
 func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if applyCORS(w, r, backend.Config.CORS) {
+		return
+	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		w.Header().Set("Allow", "GET, HEAD")
+		allow := "GET, HEAD"
+		if backend.Config.CORS.Enabled {
+			allow = "GET, HEAD, OPTIONS"
+		}
+		w.Header().Set("Allow", allow)
 		writeHTTPError(w, http.StatusMethodNotAllowed)
 		return
 	}
