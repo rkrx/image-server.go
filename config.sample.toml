@@ -104,6 +104,9 @@ remoteAddrHeader = "X-Real-IP" # optional, default: "" (TCP remote address)
 # Access-Control-* headers. Allowed origins must be listed explicitly or use
 # "*" for a public API. "*" cannot be combined with allowCredentials.
 enabled = false # optional, default: false
+# Entries may use "*" as a wildcard matching a single host label or port
+# segment, for example "http://*.localhost", "http://*.localhost:*" or
+# "https://*.example.*". A lone "*" allows any origin.
 allowedOrigins = ["https://app.example.com"] # required when enabled
 allowedMethods = ["GET", "HEAD"] # optional, default: ["GET", "HEAD"]
 allowedHeaders = ["Accept"] # optional, default: reflects Access-Control-Request-Headers

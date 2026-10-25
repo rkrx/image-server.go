@@ -8,13 +8,25 @@ allowlist with `403`.
 ```toml
 [cors]
 enabled = true
-allowedOrigins = ["https://app.example.com"]
+allowedOrigins = [
+  "https://app.example.com",
+  "http://*.localhost",
+  "http://*.localhost:*",
+  "https://*.example.*",
+]
 allowedMethods = ["GET", "HEAD"]
 allowedHeaders = ["Accept"]
 exposedHeaders = ["Content-Length", "Content-Type"]
 allowCredentials = false
 maxAgeInSeconds = 600
 ```
+
+Entries may contain `*` as a wildcard that matches a single host label or port
+segment (any character except `.`, `:` and `/`). For example, `http://*.localhost`
+matches `http://app.localhost` but not `http://a.b.localhost`; `https://*.example.*`
+matches `https://api.example.com` and `https://cdn.example.org`, but not
+`https://api.v2.example.com`. A standalone
+`"*"` entry allows any origin and is treated as the wildcard origin.
 
 | Setting            | Purpose                                                                                                                                              |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|

@@ -108,6 +108,53 @@ func TestCORSSimpleRequestHeaders(t *testing.T) {
 	assert.Contains(t, response.Header().Values("Vary"), "Origin")
 }
 
+func TestCORSWildcardPatternMatchesSingleSegment(t *testing.T) {
+	backend := newCORSBackend(t, tools.CORSConfig{
+		Enabled: true,
+		AllowedOrigins: []string{
+			"http://*.localhost",
+			"http://*.localhost:*",
+			"https://*.example.*",
+		},
+	})
+
+	testCases := []struct {
+		origin     string
+		shouldPass bool
+	}{
+		{"http://app.localhost", true},
+		{"http://admin.localhost:4000", true},
+		{"https://api.example.com", true},
+		{"https://cdn.example.org", true},
+		{"https://api.v2.example.com", false},
+		{"http://a.b.localhost", false},
+		{"https://example.com", false},
+		{"https://api.example-evil.com", false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.origin, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodOptions, "/image.jpg", nil)
+			request.Header.Set("Origin", testCase.origin)
+			request.Header.Set("Access-Control-Request-Method", "GET")
+			response := httptest.NewRecorder()
+
+			backend.ServeHTTP(response, request)
+
+			result := response.Result()
+			defer result.Body.Close()
+			if testCase.shouldPass {
+				assert.Equal(t, http.StatusNoContent, result.StatusCode)
+				assert.Equal(t, testCase.origin, result.Header.Get("Access-Control-Allow-Origin"))
+				assert.Contains(t, result.Header.Values("Vary"), "Origin")
+			} else {
+				assert.Equal(t, http.StatusForbidden, result.StatusCode)
+				assert.Empty(t, result.Header.Get("Access-Control-Allow-Origin"))
+			}
+		})
+	}
+}
+
 func TestCORSDisabledAddsNoHeaders(t *testing.T) {
 	backend := newCORSBackend(t, tools.CORSConfig{})
 

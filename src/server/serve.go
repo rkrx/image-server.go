@@ -27,6 +27,7 @@ type Backend struct {
 	HTTPClient      *http.Client
 	processingSlots chan struct{}
 	processingGroup *singleflight.Group
+	corsMatcher     corsOriginMatcher
 }
 
 func NewBackend(config tools.Config) *Backend {
@@ -39,6 +40,7 @@ func NewBackend(config tools.Config) *Backend {
 		HTTPClient:      newOriginHTTPClient(config),
 		processingSlots: make(chan struct{}, workers),
 		processingGroup: &singleflight.Group{},
+		corsMatcher:     compileCORSOrigins(config.CORS.AllowedOrigins),
 	}
 }
 
@@ -60,7 +62,7 @@ func newOriginHTTPClient(config tools.Config) *http.Client {
 
 func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if applyCORS(w, r, backend.Config.CORS) {
+	if applyCORS(w, r, backend.Config.CORS, backend.corsMatcher) {
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

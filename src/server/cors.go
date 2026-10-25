@@ -2,16 +2,66 @@ package server
 
 import (
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"image-server/src/tools"
 )
 
+type corsOriginMatcher struct {
+	allowAnyOrigin bool
+	patterns       []*regexp.Regexp
+}
+
+// compileCORSOrigins turns configured allowedOrigins into a matcher. Entries
+// may contain `*` as a wildcard that matches a single host, label or port
+// segment (any character except `.`, `:` and `/`). A standalone `*` entry
+// enables the wildcard origin.
+func compileCORSOrigins(allowedOrigins []string) corsOriginMatcher {
+	matcher := corsOriginMatcher{}
+	for _, origin := range allowedOrigins {
+		if origin == "*" {
+			matcher.allowAnyOrigin = true
+			continue
+		}
+		if origin == "" {
+			continue
+		}
+		matcher.patterns = append(matcher.patterns, compileCORSPattern(origin))
+	}
+	return matcher
+}
+
+func compileCORSPattern(pattern string) *regexp.Regexp {
+	var builder strings.Builder
+	builder.WriteString("(?i)^")
+	for i, part := range strings.Split(pattern, "*") {
+		if i > 0 {
+			builder.WriteString(`[^./:]*`)
+		}
+		builder.WriteString(regexp.QuoteMeta(part))
+	}
+	builder.WriteString("$")
+	return regexp.MustCompile(builder.String())
+}
+
+func (m corsOriginMatcher) match(origin string) (allowed, wildcard bool) {
+	for _, re := range m.patterns {
+		if re.MatchString(origin) {
+			return true, false
+		}
+	}
+	if m.allowAnyOrigin {
+		return true, true
+	}
+	return false, false
+}
+
 // applyCORS writes CORS response headers when configured. It returns true if the
 // request is a preflight that has already been fully answered and the caller
 // should stop processing.
-func applyCORS(w http.ResponseWriter, r *http.Request, cfg tools.CORSConfig) bool {
+func applyCORS(w http.ResponseWriter, r *http.Request, cfg tools.CORSConfig, matcher corsOriginMatcher) bool {
 	if !cfg.Enabled {
 		return false
 	}
@@ -23,7 +73,7 @@ func applyCORS(w http.ResponseWriter, r *http.Request, cfg tools.CORSConfig) boo
 		}
 		return false
 	}
-	allowed, allowAll := matchCORSOrigin(cfg.AllowedOrigins, origin)
+	allowed, allowAll := matcher.match(origin)
 	if !allowed {
 		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 			w.WriteHeader(http.StatusForbidden)
@@ -69,18 +119,6 @@ func applyCORS(w http.ResponseWriter, r *http.Request, cfg tools.CORSConfig) boo
 
 	w.WriteHeader(http.StatusNoContent)
 	return true
-}
-
-func matchCORSOrigin(allowedOrigins []string, origin string) (allowed, wildcard bool) {
-	for _, candidate := range allowedOrigins {
-		if candidate == "*" {
-			return true, true
-		}
-		if strings.EqualFold(candidate, origin) {
-			return true, false
-		}
-	}
-	return false, false
 }
 
 func addVary(w http.ResponseWriter, value string) {
