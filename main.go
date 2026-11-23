@@ -11,6 +11,24 @@ import (
 	"time"
 )
 
+func newRouter(backend http.Handler) *mux.Router {
+	r := mux.NewRouter()
+	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+	r.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		io.WriteString(w, "User-agent: *\nAllow: /\n")
+	})
+	r.PathPrefix("/").Handler(http.StripPrefix("/", backend))
+	return r
+}
+
 func main() {
 	conf, err := tools.LoadConfig("config.toml")
 	if err != nil {
@@ -28,12 +46,7 @@ func main() {
 	log.Printf("Original backend: %s", conf.Server.OriginalBackend)
 	log.Printf("Logging enabled: %t", conf.LoggingEnabled)
 
-	backend := server.NewBackend(conf)
-	r := mux.NewRouter()
-	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(404)
-	})
-	r.PathPrefix("/").Handler(http.StripPrefix("/", backend))
+	r := newRouter(server.NewBackend(conf))
 	http.Handle("/", r)
 
 	protocols := new(http.Protocols)

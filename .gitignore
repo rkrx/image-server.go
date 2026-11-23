@@ -8,6 +8,7 @@
 !benchmark.go
 !go.mod
 !main.go
+!main_test.go
 !README.md
 !LICENSE
 !config.sample.toml

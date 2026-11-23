@@ -32,6 +32,14 @@ encodes the result. Both the fetched original and the final derivative are
 stored on the local filesystem so repeated requests for the same transformation
 are answered from disk without touching the origin.
 
+### Crawler access
+
+`GET /robots.txt` returns a static UTF-8 text response that allows all
+crawlers to access all paths, including image URLs with transformation
+parameters. `HEAD /robots.txt` returns the same headers with an empty body.
+Both requests bypass the image backend. To apply a different policy for a
+specific host, serve that host's `/robots.txt` from the reverse proxy.
+
 ### Caching layers
 
 - **In front of the image server:** any HTTP cache can be placed between
