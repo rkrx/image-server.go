@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -65,6 +64,7 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if applyCORS(w, r, backend.Config.CORS, backend.corsMatcher) {
 		return
 	}
+	w = imageCacheWriter{ResponseWriter: w, config: &backend.Config}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		allow := "GET, HEAD"
 		if backend.Config.CORS.Enabled {
@@ -81,12 +81,6 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.RawQuery != "" && strings.Count(r.URL.RawQuery, "&")+1 > positiveOrDefault(backend.Config.Server.MaxQueryParameters, tools.DefaultMaxQueryParameters) {
 		writeHTTPError(w, http.StatusBadRequest)
 		return
-	}
-
-	if backend.Config.DisableCaching {
-		w.Header().Add("Cache-Control", "no-cache")
-	} else if backend.Config.CacheMaxAgeInSeconds > 0 {
-		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", backend.Config.CacheMaxAgeInSeconds))
 	}
 
 	values, err := url.ParseQuery(r.URL.RawQuery)
@@ -288,19 +282,46 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeHTTPError(w, http.StatusInternalServerError)
 		return
 	}
-	if fileInfo, statErr := file.Stat(); statErr == nil {
-		w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
-	}
-	if r.Method == http.MethodHead {
-		w.WriteHeader(http.StatusOK)
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Print("Could not stat cache file")
+		writeHTTPError(w, http.StatusInternalServerError)
 		return
 	}
-	_, err = io.Copy(w, file)
+	http.ServeContent(w, r, "", fileInfo.ModTime(), file)
+	//endregion
+}
+
+type imageCacheWriter struct {
+	http.ResponseWriter
+	config *tools.Config
+}
+
+// ServeContent can select a different status after checking request preconditions.
+func (w imageCacheWriter) WriteHeader(status int) {
+	maxAge := w.config.CacheMaxAgeInSeconds
+	switch {
+	case status == http.StatusNotFound && !w.config.DisableCaching && maxAge > 0:
+		w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", min(maxAge, 60)))
+	case status >= 400:
+		w.Header().Set("Cache-Control", "no-store")
+	case status == http.StatusOK || status == http.StatusPartialContent || status == http.StatusNotModified:
+		if w.config.DisableCaching {
+			w.Header().Set("Cache-Control", "no-cache")
+		} else if maxAge > 0 {
+			w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", maxAge))
+		}
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+
+// Preserve the underlying HTTP writer's optimized file transfer path.
+func (w imageCacheWriter) ReadFrom(src io.Reader) (int64, error) {
+	n, err := io.Copy(w.ResponseWriter, src)
 	if err != nil {
 		log.Print("Could not write cached response")
-		return
 	}
-	//endregion
+	return n, err
 }
 
 type imageProcessingResult struct {

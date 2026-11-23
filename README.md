@@ -42,6 +42,16 @@ specific host, serve that host's `/robots.txt` from the reverse proxy.
 
 ### Caching layers
 
+Image responses include the cached derivative's modification time in
+`Last-Modified`. Clients can send it back in `If-Modified-Since` on a
+`GET` or `HEAD` request. An unchanged derivative returns `304 Not Modified`
+with an empty body and the same cache policy as a successful image response.
+
+A missing image (`404`) has a `max-age` of at most 60 seconds, capped by
+`cacheMaxAgeInSeconds`. When caching is disabled or no positive lifetime
+is configured, missing images return `Cache-Control: no-store`. Other
+image request errors, including origin failures, also return `no-store`.
+
 - **In front of the image server:** any HTTP cache can be placed between
   clients and the server because responses are plain, cacheable HTTP with
   `Cache-Control` and `Vary` set appropriately. Typical choices are

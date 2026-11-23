@@ -122,6 +122,80 @@ func TestBackendServeHTTPRejectsUnsupportedMethods(t *testing.T) {
 	assert.Equal(t, "nosniff", response.Header().Get("X-Content-Type-Options"))
 }
 
+func TestImageErrorCachePolicy(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		status   int
+		maxAge   int32
+		disabled bool
+		want     string
+	}{
+		{"missing", 404, 2592000, false, "max-age=60"},
+		{"short lifetime", 404, 10, false, "max-age=10"},
+		{"no lifetime", 404, 0, false, "no-store"},
+		{"disabled", 404, 2592000, true, "no-store"},
+		{"forbidden", 403, 2592000, false, "no-store"},
+		{"origin unavailable", 503, 2592000, false, "no-store"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tc.status)
+			}))
+			defer origin.Close()
+			backend := NewBackend(tools.Config{
+				Server:               tools.ServerType{OriginalBackend: origin.URL},
+				ImageCacheDir:        t.TempDir(),
+				CacheMaxAgeInSeconds: tc.maxAge,
+				DisableCaching:       tc.disabled,
+			})
+			response := httptest.NewRecorder()
+			backend.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/missing.png", nil))
+			require.Equal(t, tc.status, response.Code)
+			assert.Equal(t, tc.want, response.Result().Header.Get("Cache-Control"))
+		})
+	}
+}
+
+func TestConditionalImageRequests(t *testing.T) {
+	backend, originRequests := compositionTestBackend(t)
+	backend.Config.CacheMaxAgeInSeconds = 3600
+	request := func(method, header, value string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, "/background.png", nil)
+		if header != "" {
+			req.Header.Set(header, value)
+		}
+		response := httptest.NewRecorder()
+		backend.ServeHTTP(response, req)
+		return response
+	}
+	first := request(http.MethodGet, "", "")
+	require.Equal(t, http.StatusOK, first.Code)
+	require.NotEmpty(t, first.Body.Bytes())
+	modified := first.Result().Header.Get("Last-Modified")
+	modTime, err := http.ParseTime(modified)
+	require.NoError(t, err)
+	assert.Equal(t, "max-age=3600", first.Result().Header.Get("Cache-Control"))
+
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		response := request(method, "If-Modified-Since", modified)
+		assert.Equal(t, http.StatusNotModified, response.Code)
+		assert.Empty(t, response.Body.Bytes())
+		assert.Equal(t, "max-age=3600", response.Result().Header.Get("Cache-Control"))
+		assert.Contains(t, response.Result().Header.Values("Vary"), "Accept")
+	}
+	backend.Config.DisableCaching = true
+	stale := request(http.MethodGet, "If-Modified-Since", modTime.Add(-time.Second).Format(http.TimeFormat))
+	assert.Equal(t, http.StatusOK, stale.Code)
+	assert.Equal(t, first.Body.Bytes(), stale.Body.Bytes())
+	assert.Equal(t, "no-cache", stale.Result().Header.Get("Cache-Control"))
+	assert.Equal(t, int32(1), originRequests.Load())
+
+	backend.Config.DisableCaching = false
+	failed := request(http.MethodGet, "If-Unmodified-Since", modTime.Add(-time.Second).Format(http.TimeFormat))
+	assert.Equal(t, http.StatusPreconditionFailed, failed.Code)
+	assert.Equal(t, "no-store", failed.Result().Header.Get("Cache-Control"))
+}
+
 func TestBackendServeHTTPDoesNotReflectInvalidOutputType(t *testing.T) {
 	backend := NewBackend(tools.Config{DisableHashChecking: true})
 	request := httptest.NewRequest(http.MethodGet, "/source.png?type=%3Cscript%3Ealert(1)%3C/script%3E", nil)
