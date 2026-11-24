@@ -47,6 +47,10 @@ Image responses include the cached derivative's modification time in
 `GET` or `HEAD` request. An unchanged derivative returns `304 Not Modified`
 with an empty body and the same cache policy as a successful image response.
 
+Image paths retain their URL encoding when sent to the origin. For example,
+`/100%25.jpg` requests the file named `100%.jpg`. If the origin returns
+`404 Not Found`, the image server forwards that status.
+
 A missing image (`404`) has a `max-age` of at most 60 seconds, capped by
 `cacheMaxAgeInSeconds`. When caching is disabled or no positive lifetime
 is configured, missing images return `Cache-Control: no-store`. Other

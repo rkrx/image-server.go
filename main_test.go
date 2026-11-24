@@ -1,11 +1,37 @@
 package main
 
 import (
+	"image-server/src/server"
+	"image-server/src/tools"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+func TestMissingImageReturnsNotFound(t *testing.T) {
+	for _, path := range []string{"/missing.png", "/missing-100%25.png", "/missing%3Fpart.png"} {
+		t.Run(path, func(t *testing.T) {
+			origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.RequestURI != path {
+					t.Errorf("origin received %q, want %q", r.RequestURI, path)
+				}
+				http.NotFound(w, r)
+			}))
+			defer origin.Close()
+
+			router := newRouter(server.NewBackend(tools.Config{
+				ImageCacheDir: t.TempDir(),
+				Server:        tools.ServerType{OriginalBackend: origin.URL},
+			}))
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+			if response.Code != http.StatusNotFound {
+				t.Errorf("got HTTP %d, want 404", response.Code)
+			}
+		})
+	}
+}
 
 func TestRobotsTxt(t *testing.T) {
 	router := newRouter(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

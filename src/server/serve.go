@@ -167,6 +167,7 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	//region Project the origFilename and the cachePath
 	origFilename, cachePath := "", ""
+	sourcePath := r.URL.EscapedPath()
 	cacheKey := profile.GetDirectoryHash(backend.Config)
 	if virtualCanvas {
 		cacheKey += ";canvas=white"
@@ -177,16 +178,16 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cacheKey = fmt.Sprintf("composition-v1-%x", sha256.Sum256([]byte(cacheKey+";put="+composition.cacheHash)))
 	}
 	if backend.Config.HashCacheFilenames {
-		origFilename = tools.Md5(filepath.Join(originalKey, r.URL.Path))
-		cacheFilename := tools.Md5(filepath.Join(cacheKey, r.URL.Path))
+		origFilename = tools.Md5(filepath.Join(originalKey, sourcePath))
+		cacheFilename := tools.Md5(filepath.Join(cacheKey, sourcePath))
 		cachePath = filepath.Join(profile.ImageCacheDir, fmt.Sprintf("%s.%s", cacheFilename, profile.Type))
 	} else {
-		origFilename = tools.Md5(r.URL.Path)
+		origFilename = tools.Md5(sourcePath)
 		cachePath = filepath.Join(profile.ImageCacheDir, cacheKey, fmt.Sprintf("%s.%s", origFilename, profile.Type))
 	}
+	requestPath := tools.ConcatPathParts(profile.OriginalBackend, sourcePath)
 	if composition != nil {
-		originURL := tools.ConcatPathParts(profile.OriginalBackend, r.URL.Path)
-		origFilename = fmt.Sprintf("source-%x", sha256.Sum256([]byte(originURL)))
+		origFilename = fmt.Sprintf("source-%x", sha256.Sum256([]byte(requestPath)))
 	}
 
 	if composition == nil {
@@ -213,7 +214,6 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return imageProcessingResult{statusCode: http.StatusOK}, nil
 			}
 
-			requestPath := tools.ConcatPathParts(profile.OriginalBackend, r.URL.Path)
 			var budget *compositionBudget
 			if composition != nil || virtualCanvas {
 				budget = newCompositionBudget(backend.Config)
