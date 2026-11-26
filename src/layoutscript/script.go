@@ -3,6 +3,7 @@ package layoutscript
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -12,6 +13,11 @@ import (
 
 	"github.com/dop251/goja"
 )
+
+//go:embed image_url.js
+var imageURLSource string
+
+var imageURLProgram = goja.MustCompile("image_url.js", imageURLSource, true)
 
 type Script struct{ program *goja.Program }
 
@@ -56,6 +62,9 @@ func (s *Script) start(ctx context.Context) (invocation, func(), error) {
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	stop := context.AfterFunc(ctx, func() { vm.Interrupt(ctx.Err()) })
 	finish := func() { stop(); cancel() }
+	if _, err := vm.RunProgram(imageURLProgram); err != nil {
+		return invocation{}, finish, err
+	}
 	value, err := vm.RunProgram(s.program)
 	if err != nil {
 		return invocation{}, finish, err

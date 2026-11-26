@@ -4,10 +4,10 @@ function compose(url) {
     if (!path || !path.startsWith('/')) {
       throw new Error('Each image needs an origin-relative path starting with /');
     }
-    const imagePath = path.split('/').map(encodeURIComponent).join('/');
+    // These paths are already decoded request arguments, including literal percent signs.
     return {
       type: 'image',
-      url: profile ? imagePath + '?profile=' + encodeURIComponent(profile) : imagePath,
+      url: imageUrl(path.replace(/%/g, '%25'), {profile: profile || undefined}),
       pos: [x, 0],
       dim: [50, 100],
       fit: 'contain',

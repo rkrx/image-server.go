@@ -88,7 +88,8 @@ image request errors, including origin failures, also return `no-store`.
 - [Image compositions](doc/compositions.md) — the `put` / `putb` / `canvas`
   parameters for layered compositions on top of a background or blank canvas.
 - [JavaScript layout profiles](doc/compositions.md#javascript-layout-profiles) generate
-  compositions from short signed URLs. The [side-by-side example](doc/examples/side-by-side.js)
+  compositions from short signed URLs. Scripts can build child image paths with
+  [`imageUrl(path, params)`](doc/compositions.md#building-child-image-urls). The [side-by-side example](doc/examples/side-by-side.js)
   places two images from the same or different sources on one canvas. The
   [root bundle layout](composition.js) accepts an ordered list of up to five
   individual images. Expand nested bundles before signing the URL as described

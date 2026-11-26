@@ -54,3 +54,26 @@ func TestScriptErrorsAndIsolation(t *testing.T) {
 		require.Equal(t, 1, result.Width)
 	}
 }
+
+func TestImageURL(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gallery.js")
+	require.NoError(t, os.WriteFile(path, []byte(`
+        function compose(url) {
+            return {width: 100, height: 100, layout: [
+                {url: imageUrl(url.params.path)},
+                {url: imageUrl(url.params.path, {profile: 'archive & print', width: 300, autocrop: '12,3', height: undefined})}
+            ]};
+        }`), 0600))
+	script, err := Load(path)
+	require.NoError(t, err)
+	result, err := script.Run(t.Context(), "/", url.Values{"path": {"gallery/Café 100%/one%20two!.jpg"}})
+	require.NoError(t, err)
+	require.JSONEq(t, `[
+        {"url":"/gallery/Caf%C3%A9%20100%25/one%20two%21.jpg"},
+        {"url":"/gallery/Caf%C3%A9%20100%25/one%20two%21.jpg?profile=archive%20%26%20print&width=300&autocrop=12%2C3"}
+    ]`, string(result.Layout))
+	for _, path := range []string{"", "//host/img.jpg", "https://host/img.jpg", "../img.jpg", "/%2e%2e/img.jpg", "/dir%2F..%2Fx.jpg"} {
+		_, err := script.Run(t.Context(), "/", url.Values{"path": {path}})
+		require.Error(t, err, path)
+	}
+}

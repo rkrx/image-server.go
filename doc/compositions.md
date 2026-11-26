@@ -339,6 +339,26 @@ query.
 The [overlay example](examples/overlay.js) draws a corner marker on the request
 image by omitting `canvas`.
 
+### Building child image URLs
+
+Use the built-in `imageUrl(path, params)` for the `url` of an image node.
+The optional parameters object accepts strings and finite numbers. Values
+of `null` or `undefined` are omitted. For example:
+
+```js
+imageUrl('photos/lake view.jpg')
+// /photos/lake%20view.jpg
+
+imageUrl('/photos/lake%20view.jpg', {profile: 'archive', autocrop: '12,3', width: 300})
+// /photos/lake%20view.jpg?profile=archive&autocrop=12%2C3&width=300
+```
+
+Pass a path and supply query parameters separately. Valid `%HH` path escapes
+are preserved or normalized. For a literal percent followed by two hex digits,
+pass `%25` for the percent. Query values are always supplied decoded. The
+existing child profile and transformation rules apply. Only the outer request
+needs a signature.
+
 Each child image selects its source through its own `url`. A path such as
 `/photos/lake.jpg` uses the default backend. Appending `?profile=archive`
 selects that regular source profile for that image. Only the outer request
