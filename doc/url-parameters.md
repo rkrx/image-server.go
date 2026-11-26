@@ -22,12 +22,12 @@ GET http://127.0.0.1:8080/some-image-name.jpg?width=600&height=600&autocrop=15,3
 ```
 
 You can set the transformation parameters as needed, but they require a hash
-generated from the request URI without the hash value. The output `type` can be
+generated from the request URI without the hash value. For ordinary transformations the output `type` can be
 changed without generating another hash so one signed transformation can be
 delivered as JPEG, WebP, or AVIF. See [Request signing](signing.md) for details.
 
-It's also possible to specify profiles via the `config.toml`, for which you do
-not need a hash value.
+Static profiles in `config.toml` can be selected with just their name.
+[JavaScript layout profiles](compositions.md#javascript-layout-profiles) require a signature over the entire short URI, including any explicit `type`.
 
 ```
 GET http://127.0.0.1:8080/some-image-name.jpg?profile=500px

@@ -1,12 +1,22 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"image"
 	"image-server/src/server"
 	"image-server/src/tools"
+	"image/color"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMissingImageReturnsNotFound(t *testing.T) {
@@ -75,4 +85,75 @@ func TestRobotsTxt(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestScriptProfileRendersDefaultAndNamedSource(t *testing.T) {
+	origin := func(path string, pixel color.NRGBA) string {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != path {
+				http.NotFound(w, r)
+				return
+			}
+			img := image.NewNRGBA(image.Rect(0, 0, 1, 1))
+			img.SetNRGBA(0, 0, pixel)
+			if err := png.Encode(w, img); err != nil {
+				t.Error(err)
+			}
+		}))
+		t.Cleanup(server.Close)
+		return server.URL
+	}
+	red, blue := color.NRGBA{R: 255, A: 255}, color.NRGBA{B: 255, A: 255}
+	dir := t.TempDir()
+	script, err := os.ReadFile("doc/examples/side-by-side.js")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "side-by-side.js"), script, 0600))
+	config := fmt.Sprintf(`secret="test"
+imageCacheDir=%q
+imageOriginalDir=%q
+[server]
+originalBackend=%q
+[[profile]]
+name="side-by-side"
+script="side-by-side.js"
+[[profile]]
+name="other"
+originalBackend=%q
+`, dir, dir, origin("/main item.png", red), origin("/second item.png", blue))
+	filename := filepath.Join(dir, "config.toml")
+	require.NoError(t, os.WriteFile(filename, []byte(config), 0600))
+	conf, err := tools.LoadConfig(filename)
+	require.NoError(t, err)
+	router := newRouter(server.NewBackend(conf))
+	target := "/main%20item.png?profile=side-by-side&right=%2Fsecond%20item.png&rightProfile=other&type=png"
+	request := func(target string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest("GET", target, nil))
+		return w
+	}
+	require.Equal(t, http.StatusForbidden, request(target).Code)
+	sign := func(uri string) string { return uri + "&hash=" + tools.Md5(uri + conf.Secret)[:8] }
+	signed := sign(target)
+	require.Equal(t, http.StatusForbidden, request(strings.Replace(signed, "second", "third", 1)).Code)
+	require.Equal(t, http.StatusForbidden, request(strings.Replace(signed, "type=png", "type=jpeg", 1)).Code)
+	for _, extra := range []string{"&right=x", "&canvas=white", "&put=[]", "&putb=W10"} {
+		require.Equal(t, http.StatusBadRequest, request(sign(target+extra)).Code)
+	}
+	w := request(signed)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	img, err := png.Decode(bytes.NewReader(w.Body.Bytes()))
+	require.NoError(t, err)
+	require.Equal(t, image.Rect(0, 0, 800, 400), img.Bounds())
+	require.Equal(t, red, color.NRGBAModel.Convert(img.At(200, 200)))
+	require.Equal(t, blue, color.NRGBAModel.Convert(img.At(600, 200)))
+	require.Equal(t, http.StatusNotFound, request(sign(strings.Replace(target, "second", "missing", 1))).Code)
+	require.Equal(t, w.Body.Bytes(), request(signed).Body.Bytes())
+
+	sameOrigin := "/main%20item.png?profile=side-by-side&right=%2Fmain%20item.png&type=png"
+	w = request(sign(sameOrigin))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	img, err = png.Decode(bytes.NewReader(w.Body.Bytes()))
+	require.NoError(t, err)
+	require.Equal(t, red, color.NRGBAModel.Convert(img.At(600, 200)))
+	require.Equal(t, http.StatusBadRequest, request(sign("/main.png?profile=side-by-side")).Code)
 }

@@ -2,7 +2,7 @@
 
 ## Compile and run from the command line
 
-Use Go 1.26.5, the toolchain version specified in `go.mod`. Image encoders use
+Use Go 1.26.11 or later to build the server. Image encoders use
 CGO, so a C/C++ compiler and zlib development headers are required when building.
 On macOS, install the Xcode Command Line Tools with `xcode-select --install` if
 they are not already installed. On Debian/Ubuntu, install the build dependencies:

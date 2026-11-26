@@ -12,4 +12,5 @@
 !README.md
 !LICENSE
 !config.sample.toml
+!/composition.js
 !.dockerignore

@@ -1,0 +1,44 @@
+[
+  {
+    "type": "image",
+    "url": "/plus.png",
+    "pos": [
+      50,
+      25
+    ],
+    "dim": [
+      10,
+      null
+    ],
+    "piv": "center center",
+    "mod": "pixelated"
+  },
+  {
+    "type": "image",
+    "url": "/plus.png",
+    "pos": [
+      50,
+      50
+    ],
+    "dim": [
+      10,
+      null
+    ],
+    "piv": "center center",
+    "mod": "pixelated"
+  },
+  {
+    "type": "image",
+    "url": "/plus.png",
+    "pos": [
+      50,
+      75
+    ],
+    "dim": [
+      10,
+      null
+    ],
+    "piv": "center center",
+    "mod": "pixelated"
+  }
+]

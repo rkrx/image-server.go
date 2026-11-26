@@ -1,0 +1,81 @@
+[
+  {
+    "type": "rect",
+    "pos": [
+      2.5,
+      5
+    ],
+    "dim": [
+      65,
+      90
+    ],
+    "anc": "center center",
+    "cld": [
+      {
+        "type": "image",
+        "url": "/kamera.jpg?width=600&mode=proportional&autocrop=15,0",
+        "pos": [
+          -50,
+          -50
+        ],
+        "dim": [
+          100,
+          100
+        ]
+      }
+    ]
+  },
+  {
+    "type": "rect",
+    "pos": [
+      70,
+      5
+    ],
+    "dim": [
+      8,
+      90
+    ],
+    "anc": "center center",
+    "cld": [
+      {
+        "type": "image",
+        "url": "/plus.png",
+        "pos": [
+          -27.5,
+          -50
+        ],
+        "dim": [
+          55,
+          100
+        ],
+        "mod": "pixelated"
+      }
+    ]
+  },
+  {
+    "type": "rect",
+    "pos": [
+      79,
+      5
+    ],
+    "dim": [
+      19,
+      90
+    ],
+    "anc": "center center",
+    "cld": [
+      {
+        "type": "image",
+        "url": "/objektiv.jpg?width=300&mode=proportional&autocrop=15,0",
+        "pos": [
+          -50,
+          -50
+        ],
+        "dim": [
+          100,
+          100
+        ]
+      }
+    ]
+  }
+]

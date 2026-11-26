@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"image-server/src/layoutscript"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,6 +59,8 @@ const (
 )
 
 type Profile struct {
+	Script           string               `toml:"script" json:"-"`
+	LayoutScript     *layoutscript.Script `toml:"-" json:"-"`
 	Name             string
 	OriginalBackend  string
 	ImageOriginalDir string
@@ -111,6 +114,9 @@ func (profile *Profile) ApplyFileType(fileType string) error {
 }
 
 func (profile *Profile) ApplyFromProfile(otherProfile Profile) {
+	if otherProfile.Script != "" {
+		profile.Script, profile.LayoutScript = otherProfile.Script, otherProfile.LayoutScript
+	}
 	if otherProfile.Name != "" {
 		profile.Name = otherProfile.Name
 	}
@@ -426,6 +432,22 @@ func LoadConfig(filename string) (Config, error) {
 	applySafeDefaults(&conf)
 	if err := validateConfig(conf); err != nil {
 		return conf, err
+	}
+
+	for i := range conf.Profiles {
+		p := &conf.Profiles[i]
+		if p.Script == "" {
+			continue
+		}
+		path := p.Script
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(filepath.Dir(filename), path)
+		}
+		script, err := layoutscript.Load(path)
+		if err != nil {
+			return conf, fmt.Errorf("profile %q script %q: %w", p.Name, p.Script, err)
+		}
+		p.LayoutScript = script
 	}
 
 	if err := ensurePrivateDirectory(conf.ImageOriginalDir); err != nil {

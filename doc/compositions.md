@@ -236,3 +236,118 @@ work budget, not just the final output size. Individual generated image
 dimensions must also respect the existing image limits. Derived crop dimensions
 are checked before allocation. Zero or negative limit settings use the safe
 defaults.
+
+## JavaScript layout profiles
+
+The [side-by-side example](examples/side-by-side.js) places two images side by
+side on an 800 × 400 white canvas. Each image is centered in a 400 × 400
+panel and keeps its aspect ratio.
+
+Place the script next to `config.toml` and add this profile. In Docker, mount
+the script read-only at `/app/side-by-side.js` alongside the configuration.
+
+```toml
+[[profile]]
+name = "side-by-side"
+script = "side-by-side.js"
+```
+
+### Two images from the default source
+
+The request path selects the left image. The required `right` parameter
+contains the path of the right image, encoded as a query value. Both paths
+start with `/`. This example displays `/photos/lake.jpg` on the left and
+`/photos/forest trail.jpg` on the right.
+
+```text
+/photos/lake.jpg?profile=side-by-side&right=%2Fphotos%2Fforest%20trail.jpg&type=jpeg&hash=…
+```
+
+### Two images from different sources
+
+Add a regular source profile pointing to the second origin. Replace the
+example hostname with the origin that serves your images.
+
+```toml
+[[profile]]
+name = "archive"
+originalBackend = "https://archive.example.org"
+```
+
+Pass `rightProfile=archive` to fetch the right image from that origin.
+The left image still comes from the default backend.
+
+```text
+/photos/lake.jpg?profile=side-by-side&right=%2Fscans%2Flake.jpg&rightProfile=archive&type=jpeg&hash=…
+```
+
+In both URLs, replace the ellipsis with your signature. Sign the encoded
+request path and complete query, including `type` if supplied, then append
+`&hash=<signature>` last. The configured trusted-client and global signature
+exemptions still apply. See [Request signing](signing.md).
+
+### Bundle request format
+
+The [root composition.js](../composition.js) arranges a main image on the left
+and up to four additional images on the right. Configure it separately from
+the side-by-side example.
+
+```toml
+[[profile]]
+name = "prod-comp"
+script = "composition.js"
+```
+
+```text
+/gallery/main.jpg?profile=prod-comp&images=detail-a.jpg%20detail-b.jpg&width=800&type=jpeg&hash=…
+```
+
+Use the main source as the request path. Omit `images` for a single image.
+Otherwise pass the additional sources in display order, separated by spaces.
+Only the first four are used. For a filename containing spaces, use `%20`
+inside the source, then encode the whole query value so that the internal
+escape becomes `%2520`. An empty source list has no image URL.
+
+Before signing, recursively expand each bundle component in place, preserving
+the display order. For example, `A + ((B, C), D)` yields `A, B, C, D` and
+the request `/A.jpg?profile=prod-comp&images=B.jpg%20C.jpg%20D.jpg&hash=…`.
+Apply the five-image limit to the flattened list: its first image is the main
+image and the next four are the additional images. Only individual source
+paths belong in these slots. A legacy `bundle-composition:` value in a selected
+slot returns HTTP 400.
+
+Image nodes use the default backend. The separator comes from
+`/misc/product-gallery/bundle-plus.png?profile=public-img`. Configure a
+regular source profile named `public-img` that serves this asset.
+The default backend must serve `/noimg.jpg` for unsupported image sources.
+The default canvas is 1500 × 870. Supply one dimension to preserve 100:58,
+or supply both to center the complete layout on a white canvas of that size.
+
+### Writing a layout
+
+Define a synchronous `function compose(url)`. The server passes the decoded
+request path in `url.pathname` and decoded query strings in `url.params`,
+excluding the signature. Each query argument may appear once. The side-by-side example
+defines `right` and `rightProfile` itself. Other layouts can choose their own
+parameter names.
+
+Return positive integer `width` and `height`, a `layout` array of composition
+nodes, and optionally `canvas: 'white'`. Omit `canvas` to draw on the request
+image. The server rejects `put`, `putb` and `canvas` in a scripted request's
+query.
+
+The [overlay example](examples/overlay.js) draws a corner marker on the request
+image by omitting `canvas`.
+
+Each child image selects its source through its own `url`. A path such as
+`/photos/lake.jpg` uses the default backend. Appending `?profile=archive`
+selects that regular source profile for that image. Only the outer request
+may select a scripted profile.
+
+Scripts are trusted local configuration. Relative script paths resolve from
+the TOML file's directory. Restart the server after editing a script. At startup
+the server compiles each file and checks its entry point. Each invocation uses a
+fresh JavaScript runtime with a 250 ms execution timeout and shares the server's
+processing worker limit. The existing image limits and cache keys apply to the
+generated composition. For immediate updates in downstream HTTP caches, change
+the signed public URL or purge those caches.

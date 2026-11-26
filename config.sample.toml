@@ -133,7 +133,7 @@ alphaQuality = 80 # optional, default: 80
 # AVIF encoding speed from 0 (slowest/best compression) to 10 (fastest).
 speed = 6 # optional, default: 6
 
-# Named profiles can be requested with ?profile=<name> without signing the
+# Static profiles can be requested with ?profile=<name> without signing the
 # profile itself. Additional URL transformations still require a valid hash.
 [[profile]]
 name = "product-card"
@@ -161,3 +161,10 @@ imageCacheDir = "/var/cache/image-server/hero-images" # optional, default: top-l
 # - imageOriginalDir: cached originals are currently stored in imageCacheDir.
 # type = "avif" # optional, default: "jpeg" (currently overridden by output negotiation)
 # imageOriginalDir = "/var/cache/image-server/hero-originals" # optional, default: top-level imageOriginalDir
+
+# Optional bundle layout. Place composition.js next to config.toml.
+# Regular images use the default source; configure public-img for the plus icon.
+# Sign the request path and all arguments, then append &hash=… last.
+# [[profile]]
+# name = "prod-comp"
+# script = "composition.js"

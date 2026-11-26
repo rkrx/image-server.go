@@ -79,14 +79,20 @@ image request errors, including origin failures, also return `no-store`.
 
 ## Documentation
 
-- [Getting started](doc/getting-started.md) — build, configure and run the
-  server locally or in Docker.
+- [Getting started](doc/getting-started.md) — build with Go 1.26.11 or later,
+  configure and run the server locally or in Docker.
 - [URL parameters](doc/url-parameters.md) — the full list of transformation
   parameters, with an example request.
 - [Request signing](doc/signing.md) — how to generate the `hash` value and
   configure the signing algorithm.
 - [Image compositions](doc/compositions.md) — the `put` / `putb` / `canvas`
   parameters for layered compositions on top of a background or blank canvas.
+- [JavaScript layout profiles](doc/compositions.md#javascript-layout-profiles) generate
+  compositions from short signed URLs. The [side-by-side example](doc/examples/side-by-side.js)
+  places two images from the same or different sources on one canvas. The
+  [root bundle layout](composition.js) accepts an ordered list of up to five
+  individual images. Expand nested bundles before signing the URL as described
+  in the [bundle request format](doc/compositions.md#bundle-request-format).
 - [Output formats and encoder defaults](doc/output-formats.md) — AVIF/WebP/JPEG
   negotiation and encoder tuning.
 - [CORS](doc/cors.md) — enable browser cross-origin requests to the image
@@ -94,5 +100,6 @@ image request errors, including origin failures, also return `no-store`.
 - [Limits and quotas](doc/limits.md) — origin fetch, image processing and
   HTTP request limits.
 
-Sample configuration lives in [`config.sample.toml`](config.sample.toml);
-ready-to-use composition examples are in [`doc/examples`](doc/examples).
+The server reads `config.toml` using TOML 1.1 syntax. See the sample
+configuration in [`config.sample.toml`](config.sample.toml) and the ready-to-use
+composition examples in [`doc/examples`](doc/examples).

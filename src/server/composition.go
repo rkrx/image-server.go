@@ -176,6 +176,9 @@ func (backend *Backend) resolveCompositionSource(value string) (compositionSourc
 	if err := applyUrlParameters(&profile, backend.Config, value, values, true); err != nil {
 		return compositionSource{}, err
 	}
+	if profile.Script != "" {
+		return compositionSource{}, errors.New("child profiles cannot run composition scripts")
+	}
 	if values.Has("type") {
 		if err := profile.ApplyFileType(values.Get("type")); err != nil {
 			return compositionSource{}, err

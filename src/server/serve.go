@@ -129,6 +129,33 @@ func (backend *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	//endregion
 
+	if profile.Script != "" {
+		if values.Has("put") || values.Has("putb") || values.Has("canvas") {
+			writeHTTPError(w, http.StatusBadRequest)
+			return
+		}
+		if profile.LayoutScript == nil {
+			writeHTTPError(w, http.StatusInternalServerError)
+			return
+		}
+		if err := backend.acquireProcessingSlot(r.Context()); err != nil {
+			writeHTTPError(w, http.StatusRequestTimeout)
+			return
+		}
+		pathname := "/" + strings.TrimPrefix(r.URL.Path, "/")
+		result, err := profile.LayoutScript.Run(r.Context(), pathname, values)
+		backend.releaseProcessingSlot()
+		if err != nil || backend.Config.ValidateOutputImageDimensions(result.Width, result.Height) != nil {
+			writeHTTPError(w, http.StatusBadRequest)
+			return
+		}
+		profile.Width, profile.Height = result.Width, result.Height
+		if result.Canvas != "" {
+			values.Set("canvas", result.Canvas)
+		}
+		values.Set("put", string(result.Layout))
+	}
+
 	virtualCanvas := values.Has("canvas")
 	if virtualCanvas && (len(values["canvas"]) != 1 || values.Get("canvas") != "white" || profile.Width < 1 || profile.Height < 1) {
 		writeHTTPError(w, http.StatusBadRequest)

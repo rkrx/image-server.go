@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 var errInvalidRequestHash = errors.New("invalid request hash")
@@ -74,6 +75,15 @@ func applyUrlParameters(profile *tools.Profile, config tools.Config, requestUri 
 		return err
 	}
 
+	// Every argument can influence a script, including the output type.
+	if profile.Script != "" && !disableHashChecking {
+		hash := values.Get("hash")
+		unsigned, ok := strings.CutSuffix(requestUri, "&hash="+hash)
+		if !ok || len(values["hash"]) != 1 || !compareRequestHash(generateRequestHash(unsigned, config), hash) {
+			return errInvalidRequestHash
+		}
+		return nil
+	}
 	if parameterFound && !disableHashChecking && !extractHashFromRequestUri(requestUri, values, config) {
 		return errInvalidRequestHash
 	}
